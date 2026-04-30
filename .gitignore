@@ -25,5 +25,3 @@ webinarImage/
 # Environment variables
 .env
 .env.*
-*.json.env 
-*.json 
