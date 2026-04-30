@@ -1,0 +1,189 @@
+{{!-- <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>Plan Expired</title>
+</head>
+
+<body style="margin:0;padding:0;background:#fff1f2;font-family:Inter,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center" style="padding:40px 15px;">
+
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;box-shadow:0 12px 35px rgba(0,0,0,.1);overflow:hidden;">
+
+  <!-- Header -->
+  <tr>
+    <td style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:30px;color:#ffffff;">
+      <h1 style="margin:0;font-size:24px;">⚠️ Plan Expired</h1>
+      <p style="margin:6px 0 0;opacity:.9;">Action required</p>
+    </td>
+  </tr>
+
+  <!-- Content -->
+  <tr>
+    <td style="padding:30px;">
+      <p style="font-size:16px;color:#111827;">
+        Hello <strong>{{userName}}</strong>,
+      </p>
+
+      <p style="color:#374151;font-size:15px;">
+        Your subscription has <strong>already expired</strong>. To continue uninterrupted access, please renew your plan.
+      </p>
+
+      <!-- Warning Box -->
+      <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:16px;border-radius:8px;margin:20px 0;">
+        <p style="margin:0;font-size:14px;">
+          <strong>Plan:</strong> {{planName}}<br>
+          <strong>Expired On:</strong> {{expiryDate}}
+        </p>
+      </div>
+
+      <!-- CTA -->
+      <div style="text-align:center;">
+        <a href="{{renewUrl}}" style="background:#ef4444;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:600;font-size:15px;">
+          Renew Plan Now
+        </a>
+      </div>
+
+      <p style="font-size:12px;color:#9ca3af;margin-top:20px;">
+        If you have already renewed, please ignore this email.
+      </p>
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td style="padding:20px;text-align:center;color:#9ca3af;font-size:12px;">
+      Need help? Contact support at {{supportEmail}}
+    </td>
+  </tr>
+
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html> --}}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Plan Expired</title>
+</head>
+
+<body style="margin:0;padding:0;background-color:#f3f6f9;font-family:Arial, Helvetica, sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f6f9;">
+<tr>
+<td align="center" style="padding:50px 15px;">
+
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 12px 35px rgba(0,0,0,0.06);">
+
+  <!-- HEADER -->
+  <tr>
+    <td align="center" style="padding:40px 30px 30px 30px;background:#ffffff;">
+      
+      <img src="{{logoUrl}}" 
+           width="85" 
+           alt="Company Logo" 
+           style="display:block;margin:0 auto 20px;border:0;" />
+
+      <h1 style="margin:0;font-size:22px;color:#dc2626;font-weight:700;">
+        Plan Expired
+      </h1>
+
+      <p style="margin:8px 0 0;font-size:14px;color:#6b7280;">
+        Immediate action required to restore access
+      </p>
+
+    </td>
+  </tr>
+
+  <!-- DIVIDER -->
+  <tr>
+    <td style="height:1px;background:#e5e7eb;"></td>
+  </tr>
+
+  <!-- CONTENT -->
+  <tr>
+    <td style="padding:35px;">
+
+      <p style="margin:0 0 15px;font-size:16px;color:#111827;">
+        Hello <strong>{{userName}}</strong>,
+      </p>
+
+      <p style="margin:0 0 25px;font-size:15px;color:#4b5563;line-height:1.6;">
+        Your subscription has expired. To continue enjoying uninterrupted access to all features, please renew your plan.
+      </p>
+
+      <!-- DETAILS CARD -->
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="background:#fff7f7;border:1px solid #fecaca;border-radius:12px;padding:22px;">
+        
+        <tr>
+          <td colspan="2" style="font-size:15px;font-weight:600;color:#b91c1c;padding-bottom:12px;">
+            Subscription Details
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:#6b7280;">Plan</td>
+          <td align="right" style="padding:8px 0;font-size:15px;font-weight:600;color:#111827;">
+            {{planName}}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:#6b7280;">Expired On</td>
+          <td align="right" style="padding:8px 0;font-size:14px;color:#111827;">
+            {{expiryDate}}
+          </td>
+        </tr>
+
+      </table>
+
+      <!-- CTA -->
+      <div style="text-align:center;margin:35px 0 10px 0;">
+        <a href="{{renewUrl}}" 
+           style="background:#dc2626;
+                  color:#ffffff;
+                  text-decoration:none;
+                  padding:14px 32px;
+                  border-radius:8px;
+                  font-size:15px;
+                  font-weight:600;
+                  display:inline-block;
+                  letter-spacing:0.3px;">
+          Renew Plan Now
+        </a>
+      </div>
+
+      <p style="font-size:12px;color:#9ca3af;margin-top:20px;text-align:center;">
+        If you’ve already renewed, you can safely ignore this email.
+      </p>
+
+    </td>
+  </tr>
+
+  <!-- FOOTER -->
+  <tr>
+    <td style="padding:25px;text-align:center;font-size:12px;color:#9ca3af;background:#ffffff;">
+      Need help? Contact us at 
+      <a href="mailto:{{supportEmail}}" style="color:#004958;text-decoration:none;">
+        {{supportEmail}}
+      </a>
+      <br><br>
+      © {{year}} {{companyName}}. All rights reserved.
+    </td>
+  </tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>

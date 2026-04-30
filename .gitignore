@@ -1,0 +1,29 @@
+# Node modules
+node_modules/
+
+# Certificates
+certificates/
+
+# Resume files
+resume/
+
+# Profile pictures
+ProfilePictures/
+
+# Contact images
+contactImage/
+
+# Job images
+jobImage/
+
+# Poster images
+posterImages/
+logo/
+serviceImage/
+webinarImage/
+
+# Environment variables
+.env
+.env.*
+*.json.env 
+*.json 

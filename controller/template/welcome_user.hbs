@@ -1,0 +1,223 @@
+{{!-- <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Welcome</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f4f6f8;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    .header {
+      background: linear-gradient(135deg, #004958, #004958);
+      color: #ffffff;
+      padding: 25px;
+      text-align: center;
+    }
+    .content {
+      padding: 30px;
+      color: #333333;
+    }
+    .credentials {
+      background: #f9fafb;
+      border: 1px dashed #4f46e5;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 25px;
+      background: #004958;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    .footer {
+      padding: 15px;
+      font-size: 12px;
+      text-align: center;
+      color: #777;
+      background: #f4f6f8;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome 🎉</h1>
+      <p>Your account has been created</p>
+    </div>
+
+    <div class="content">
+      <p>Hello <strong>{{username}}</strong>,</p>
+
+      <p>Your login credentials are:</p>
+
+      <div class="credentials">
+        <p><strong>Username:</strong> {{username}}</p>
+        <p><strong>Password:</strong> {{password}}</p>
+      </div>
+
+      {{!-- <p>Please change your password after first login.</p> --}}
+
+      <a href="{{loginUrl}}" class="btn">Login to App</a>
+    </div>
+
+    <div class="footer">
+      © {{year}} Your App Name
+    </div>
+  </div>
+</body>
+</html> --}}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Welcome</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .wrapper {
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #ffffff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    .header {
+      background: linear-gradient(135deg, #004958, #006d7f);
+      padding: 40px 30px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .logo {
+      max-width: 120px;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 600;
+    }
+
+    .header p {
+      margin-top: 8px;
+      font-size: 15px;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 35px 30px;
+      color: #334155;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .credentials {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 25px 0;
+    }
+
+    .credentials p {
+      margin: 6px 0;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 14px 28px;
+      background: #004958;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 12px rgba(0,73,88,0.25);
+    }
+
+    .footer {
+      padding: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
+      background: #f8fafc;
+    }
+
+    @media (max-width: 600px) {
+      .content {
+        padding: 25px 20px;
+      }
+
+      .header {
+        padding: 30px 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrapper">
+    <div class="container">
+      
+      <div class="header">
+        <!-- App Logo -->
+        <img src="{{logoUrl}}" alt="App Logo" class="logo" />
+        
+        <h1>Welcome 🎉</h1>
+        <p>Your account has been successfully created</p>
+      </div>
+
+      <div class="content">
+        <p>Hello <strong>{{username}}</strong>,</p>
+
+        <p>We're excited to have you on board! Below are your login credentials:</p>
+
+        <div class="credentials">
+          <p><strong>Username:</strong> {{username}}</p>
+          <p><strong>Password:</strong> {{password}}</p>
+        </div>
+
+        <p>Please change your password after your first login for security reasons.</p>
+
+        <a href="{{loginUrl}}" class="btn">Login to Your Account</a>
+      </div>
+
+      <div class="footer">
+        © {{year}} Your App Name. All rights reserved.
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

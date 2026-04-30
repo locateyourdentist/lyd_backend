@@ -1,0 +1,40 @@
+const mongoose=require('mongoose');
+
+const  serviceModel=new mongoose.Schema({
+    serviceId:{
+        type:Number,
+        unique:true
+    },
+    serviceTitle:{
+        type:String
+    },
+    serviceDescription:{
+        type:String
+    },
+   serviceCost:{
+       type:String
+   },
+   userType:{
+      type:String
+   },
+   image:[{
+      type:Object
+   }],
+   userId:{
+      type:String
+   },
+   isActive:{
+    type:Boolean,
+    default:true
+   },
+   createdDate:{
+    type:Date,
+    default:Date.now
+   },
+   updatedDate:{
+    type:Date,
+    default:Date.now
+   }
+})
+
+module.exports=mongoose.model('services',serviceModel)

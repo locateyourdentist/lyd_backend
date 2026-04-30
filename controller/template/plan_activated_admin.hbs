@@ -1,0 +1,349 @@
+{{!-- <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>New Plan Purchased</title>
+<style>
+  body {
+    font-family: 'Inter', Arial, sans-serif;
+    background-color: #f4f6fb;
+    margin: 0;
+    padding: 0;
+    color: #111827;
+  }
+  .container {
+    max-width: 600px;
+    margin: 40px auto;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 0;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .header {
+    background-color: #004958;
+    padding: 30px;
+    text-align: center;
+    border-bottom: 4px solid #004958;
+    color: #ffffff;
+  }
+  .header img {
+    display: block;
+    margin: 0 auto 15px;
+    width: 80px;
+    border: 0;
+  }
+  .header h1 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.2;
+  }
+  .content {
+    padding: 24px;
+  }
+  h2 {
+    color: #004958;
+    margin-bottom: 16px;
+  }
+  h3 {
+    color: #111827;
+    margin-bottom: 8px;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+  }
+  li {
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #4b5563;
+  }
+  .section {
+    margin-bottom: 20px;
+  }
+  .button {
+    background:#004958;
+    color:#ffffff;
+    text-decoration:none;
+    padding:12px 24px;
+    border-radius:10px;
+    font-weight:600;
+    font-size:14px;
+    display:inline-block;
+    margin-top:20px;
+  }
+  .footer {
+    text-align:center;
+    font-size:12px;
+    color:#9ca3af;
+    margin-top:30px;
+    padding-bottom:20px;
+  }
+</style>
+</head>
+
+<body>
+  <div class="container">
+
+=    <div class="header">
+      <img src="cid:logo" alt="LYD App Logo">
+      <h1>LYD App</h1>
+    </div>
+
+    <div class="content">
+      <h2>🚀 {{messageTitle}}</h2>
+
+      {{#if userId}}
+      <div class="section">
+        <h3>User Information</h3>
+        <ul>
+          {{#if userId}}<li>User ID: {{userId}}</li>{{/if}}
+          {{#if userName}}<li>Name: {{userName}}</li>{{/if}}
+          {{#if userEmail}}<li>Email: {{userEmail}}</li>{{/if}}
+          {{#if mobileNumber}}<li>Mobile: {{mobileNumber}}</li>{{/if}}
+          {{#if userType}}<li>User Type: {{userType}}</li>{{/if}}
+        </ul>
+      </div>
+      {{/if}}
+
+      {{#if clinicName}}
+      <div class="section">
+        <h3>Clinic Details</h3>
+        <ul>
+          {{#if clinicName}}<li>Clinic Name: {{clinicName}}</li>{{/if}}
+          {{#if area}}{{#if city}}{{#if district}}{{#if state}}{{#if pincode}}
+          <li>Location: {{area}}, {{city}}, {{district}}, {{state}} - {{pincode}}</li>
+          {{/if}}{{/if}}{{/if}}{{/if}}{{/if}}
+        </ul>
+      </div>
+      {{/if}}
+
+      {{#if basePlanActive}}
+      <div class="section">
+        <h3>Base Plan</h3>
+        <ul>
+          <li>Active: {{basePlanActive}}</li>
+          {{#if basePlanStartDate}}<li>Start: {{basePlanStartDate}}</li>{{/if}}
+          {{#if basePlanEndDate}}<li>End: {{basePlanEndDate}}</li>{{/if}}
+        </ul>
+      </div>
+      {{/if}}
+
+      {{#if addonsPlanActive}}
+      <div class="section">
+        <h3>Addons Plan</h3>
+        <ul>
+          <li>Active: {{addonsPlanActive}}</li>
+          {{#if addonsPlanStartDate}}<li>Start: {{addonsPlanStartDate}}</li>{{/if}}
+          {{#if addonsPlanEndDate}}<li>End: {{addonsPlanEndDate}}</li>{{/if}}
+        </ul>
+      </div>
+      {{/if}}
+
+      {{#if jobPlanActive}}
+      <div class="section">
+        <h3>Job Plan</h3>
+        <ul>
+          <li>Active: {{jobPlanActive}}</li>
+          {{#if jobCount}}<li>Jobs Allowed: {{jobCount}}</li>{{/if}}
+          {{#if jobPlanStartDate}}<li>Start: {{jobPlanStartDate}}</li>{{/if}}
+          {{#if jobPlanEndDate}}<li>End: {{jobPlanEndDate}}</li>{{/if}}
+        </ul>
+      </div>
+      {{/if}}
+
+      {{#if adminDashboardUrl}}
+      <div style="text-align:center;">
+        <a href="{{adminDashboardUrl}}" class="button">View in Admin Dashboard</a>
+      </div>
+      {{/if}}
+
+      <div class="footer">
+        {{companyName}} • Admin Notification • {{year}}
+      </div>
+    </div>
+
+  </div>
+</body>
+</html> --}}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Plan Purchased</title>
+</head>
+
+<body style="margin:0;padding:0;background-color:#f3f6f9;font-family:Arial, Helvetica, sans-serif;color:#111827;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f6f9;">
+<tr>
+<td align="center" style="padding:40px 15px;">
+
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,0.08);">
+
+  <!-- HEADER -->
+  <tr>
+    <td align="center" style="background:#004958;padding:35px 25px;">
+      <img src="{{logoUrl}}" 
+           width="85" 
+           alt="Company Logo" 
+           style="display:block;margin:0 auto 15px;border:0;" />
+
+      <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:600;">
+        {{messageTitle}}
+      </h1>
+
+      <p style="margin:8px 0 0;color:#cfe8ed;font-size:14px;">
+        New Plan Purchase Notification
+      </p>
+    </td>
+  </tr>
+
+  <!-- CONTENT -->
+  <tr>
+    <td style="padding:30px;">
+
+      <!-- USER INFO -->
+      {{#if userId}}
+      <table width="100%" cellpadding="0" cellspacing="0" 
+             style="margin-bottom:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px;">
+        <tr>
+          <td colspan="2" style="font-weight:600;color:#004958;padding-bottom:10px;">
+            User Information
+          </td>
+        </tr>
+        {{#if userId}}
+        <tr><td style="color:#6b7280;padding:6px 0;">User ID</td><td align="right">{{userId}}</td></tr>
+        {{/if}}
+        {{#if userName}}
+        <tr><td style="color:#6b7280;padding:6px 0;">Name</td><td align="right">{{userName}}</td></tr>
+        {{/if}}
+        {{#if userEmail}}
+        <tr><td style="color:#6b7280;padding:6px 0;">Email</td><td align="right">{{userEmail}}</td></tr>
+        {{/if}}
+        {{#if mobileNumber}}
+        <tr><td style="color:#6b7280;padding:6px 0;">Mobile</td><td align="right">{{mobileNumber}}</td></tr>
+        {{/if}}
+        {{#if userType}}
+        <tr><td style="color:#6b7280;padding:6px 0;">User Type</td><td align="right">{{userType}}</td></tr>
+        {{/if}}
+      </table>
+      {{/if}}
+
+      <!-- CLINIC INFO -->
+      {{#if clinicName}}
+      <table width="100%" cellpadding="0" cellspacing="0" 
+             style="margin-bottom:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px;">
+        <tr>
+          <td colspan="2" style="font-weight:600;color:#004958;padding-bottom:10px;">
+            Clinic Details
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#6b7280;padding:6px 0;">Clinic Name</td>
+          <td align="right">{{clinicName}}</td>
+        </tr>
+        {{#if area}}
+        <tr>
+          <td style="color:#6b7280;padding:6px 0;">Location</td>
+          <td align="right">{{area}}, {{city}}, {{district}}, {{state}} - {{pincode}}</td>
+        </tr>
+        {{/if}}
+      </table>
+      {{/if}}
+
+      <!-- BASE PLAN -->
+      {{#if basePlanActive}}
+      <table width="100%" cellpadding="0" cellspacing="0" 
+             style="margin-bottom:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px;">
+        <tr>
+          <td colspan="2" style="font-weight:600;color:#004958;padding-bottom:10px;">
+            Base Plan
+          </td>
+        </tr>
+        <tr><td style="color:#6b7280;padding:6px 0;">Active</td><td align="right">{{basePlanActive}}</td></tr>
+        {{#if basePlanStartDate}}
+        <tr><td style="color:#6b7280;padding:6px 0;">Start Date</td><td align="right">{{basePlanStartDate}}</td></tr>
+        {{/if}}
+        {{#if basePlanEndDate}}
+        <tr><td style="color:#6b7280;padding:6px 0;">End Date</td><td align="right">{{basePlanEndDate}}</td></tr>
+        {{/if}}
+      </table>
+      {{/if}}
+
+      <!-- ADDONS PLAN -->
+      {{#if addonsPlanActive}}
+      <table width="100%" cellpadding="0" cellspacing="0" 
+             style="margin-bottom:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px;">
+        <tr>
+          <td colspan="2" style="font-weight:600;color:#004958;padding-bottom:10px;">
+            Addons Plan
+          </td>
+        </tr>
+        <tr><td style="color:#6b7280;padding:6px 0;">Active</td><td align="right">{{addonsPlanActive}}</td></tr>
+        {{#if addonsPlanStartDate}}
+        <tr><td style="color:#6b7280;padding:6px 0;">Start Date</td><td align="right">{{addonsPlanStartDate}}</td></tr>
+        {{/if}}
+        {{#if addonsPlanEndDate}}
+        <tr><td style="color:#6b7280;padding:6px 0;">End Date</td><td align="right">{{addonsPlanEndDate}}</td></tr>
+        {{/if}}
+      </table>
+      {{/if}}
+
+      <!-- JOB PLAN -->
+      {{#if jobPlanActive}}
+      <table width="100%" cellpadding="0" cellspacing="0" 
+             style="margin-bottom:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px;">
+        <tr>
+          <td colspan="2" style="font-weight:600;color:#004958;padding-bottom:10px;">
+            Job Plan
+          </td>
+        </tr>
+        <tr><td style="color:#6b7280;padding:6px 0;">Active</td><td align="right">{{jobPlanActive}}</td></tr>
+        {{#if jobCount}}
+        <tr><td style="color:#6b7280;padding:6px 0;">Jobs Allowed</td><td align="right">{{jobCount}}</td></tr>
+        {{/if}}
+        {{#if jobPlanStartDate}}
+        <tr><td style="color:#6b7280;padding:6px 0;">Start Date</td><td align="right">{{jobPlanStartDate}}</td></tr>
+        {{/if}}
+        {{#if jobPlanEndDate}}
+        <tr><td style="color:#6b7280;padding:6px 0;">End Date</td><td align="right">{{jobPlanEndDate}}</td></tr>
+        {{/if}}
+      </table>
+      {{/if}}
+
+      <!-- CTA -->
+      {{#if adminDashboardUrl}}
+      <div style="text-align:center;margin-top:25px;">
+        <a href="{{adminDashboardUrl}}" 
+           style="background:#004958;
+                  color:#ffffff;
+                  text-decoration:none;
+                  padding:14px 28px;
+                  border-radius:8px;
+                  font-size:14px;
+                  font-weight:600;
+                  display:inline-block;">
+          View in Admin Dashboard
+        </a>
+      </div>
+      {{/if}}
+
+      <!-- FOOTER -->
+      <div style="text-align:center;margin-top:30px;font-size:12px;color:#9ca3af;">
+        {{companyName}} • Admin Notification • {{year}}
+      </div>
+
+    </td>
+  </tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,242 @@
+{{!-- <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>Job Status Update</title>
+</head>
+
+<body style="margin:0;padding:0;background:#f4f6fb;font-family:Inter,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:40px 15px;">
+        <table width="600" cellpadding="0" cellspacing="0"
+          style="background:#ffffff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.08);overflow:hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td align="center"
+              style="background:#004958;padding:30px;color:#ffffff;">
+              <img src="cid:logo" width="70"
+                style="display:block;margin:0 auto 10px;" />
+              <h1 style="margin:0;font-size:24px;">LYD App</h1>
+              <p style="margin-top:6px;font-size:14px;opacity:.9;">
+                Job Status Notification
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding:30px;">
+              <p style="font-size:16px;color:#111827;">
+                Hi <strong>{{userName}}</strong>,
+              </p>
+
+              <p style="color:#374151;font-size:15px;">
+                {{statusMessage}}
+              </p>
+
+              <!-- Job Details Card -->
+              <table width="100%"
+                style="background:#f9fafb;border-radius:10px;padding:20px;margin-top:15px;">
+                <tr>
+                  <td style="font-size:14px;color:#6b7280;">Job Title</td>
+                  <td align="right" style="font-weight:600;">{{jobTitle}}</td>
+                </tr>
+                <tr>
+                   <tr>
+                  <td style="font-size:14px;color:#6b7280;">Hospital Name</td>
+                  <td align="right" style="font-weight:600;">{{hospitalName}}</td>
+                </tr>
+                 <tr>
+                  <td style="font-size:14px;color:#6b7280;">Job Location</td>
+                  <td align="right">{{JobLocation}}</td>
+                </tr>
+                <tr>
+                  <td style="font-size:14px;color:#6b7280;">Status</td>
+                  <td align="right">
+                    <span style="padding:6px 12px;border-radius:8px;
+                      background:{{statusColor}};
+                      color:#ffffff;font-size:13px;">
+                      {{jobStatus}}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-size:14px;color:#6b7280;">Applied On</td>
+                  <td align="right">
+                    <span style="padding:6px 12px;border-radius:8px;
+                      color:#ffffff;font-size:13px;">
+                      {{appliedDate}}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              {{#if remarks}}
+              <p style="margin-top:15px;color:#374151;font-size:14px;">
+                <strong>Remarks:</strong> {{remarks}}
+              </p>
+              {{/if}}
+
+              <!-- CTA -->
+              <div style="text-align:center;margin-top:25px;">
+                <a href="{{jobUrl}}"
+                  style="background:#004958;color:#ffffff;text-decoration:none;
+                  padding:12px 22px;border-radius:10px;font-weight:600;font-size:15px;">
+                  View Job Details
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px;text-align:center;color:#9ca3af;font-size:12px;">
+              © {{year}} {{companyName}} • All rights reserved
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html> --}}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Application Status Update</title>
+</head>
+
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family: Arial, sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0;">
+    <tr>
+      <td align="center">
+
+        <table width="600" cellpadding="0" cellspacing="0"
+          style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.06);">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:20px; border-bottom:1px solid #e5e7eb;">
+              <table width="100%">
+                <tr>
+                  <td width="50">
+                    <img src="{{companyLogoUrl}}" width="40" style="display:block;" />
+                  </td>
+                  <td>
+                    <h2 style="margin:0; font-size:18px; color:#111827;">
+                      {{companyName}}
+                    </h2>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Job Info -->
+          <tr>
+            <td style="padding:25px 25px 10px 25px;">
+              <h3 style="margin:0 0 6px; font-size:20px; color:#111827;">
+                {{jobTitle}}
+              </h3>
+              <p style="margin:0; font-size:14px; color:#6b7280;">
+                {{hospitalName}} | {{JobLocation}}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:10px 25px 25px 25px;">
+
+              <p style="font-size:15px; margin-bottom:15px;">
+                Hi <strong>{{userName}}</strong>,
+              </p>
+
+              <!-- Status Badge -->
+              {{!-- <div style="margin-bottom:15px;">
+                <span style="
+                  background-color: {{statusColor}};
+                  color:#ffffff;
+                  padding:8px 18px;
+                  border-radius:20px;
+                  font-size:13px;
+                  font-weight:600;
+                  display:inline-block;
+                  text-transform: capitalize;
+                ">
+                  {{jobStatus}}
+                </span>
+              </div> --}}
+
+              <!-- Main Message -->
+              <p style="font-size:14px; color:#374151; line-height:1.6;">
+                {{statusMessage}} for the position of 
+                <strong>{{jobTitle}}</strong> at 
+                <strong>{{hospitalName}}</strong>.
+              </p>
+
+              <!-- Dynamic Extra Content -->
+              {{#if shortlisted}}
+  <p style="color:#059669;">🎉 Our team will contact you shortly.</p>
+{{/if}}
+
+{{#if rejected}}
+  <p style="color:#6b7280;">We appreciate your effort and encourage future applications.</p>
+{{/if}}
+
+{{#if viewed}}
+  <p>You Job Application is Viewed.</p>
+{{/if}}
+
+{{#if applied}}
+  <p>Your application is under review.</p>
+{{/if}}
+
+
+              <!-- CTA -->
+              <div style="margin-top:25px;">
+                <a href="{{jobUrl}}"
+                   style="
+                    background:#2563eb;
+                    color:#ffffff;
+                    padding:12px 20px;
+                    text-decoration:none;
+                    border-radius:6px;
+                    font-size:14px;
+                    font-weight:600;
+                    display:inline-block;
+                   ">
+                   View Application
+                </a>
+              </div>
+
+              <p style="font-size:12px; color:#9ca3af; margin-top:20px;">
+                {{!-- Applied on {{appliedDate}} | Job ID: {{jobId}} --}}
+                              Applied on {{appliedDate}} 
+
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb; padding:15px; text-align:center; font-size:12px; color:#9ca3af;">
+              © {{year}} {{companyName}}. All rights reserved.
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
