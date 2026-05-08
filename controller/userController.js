@@ -505,415 +505,414 @@ if (filters.latitude && filters.longitude) {
     return res.json({ status: "error", message: error.message });
   }
 };
-exports.userRegister = async (req, res) => {
-  try {
-    const {
-      userId,
-      name,
-      dob,
-      password,
-      userType,
-      email,
-      mobileNumber,
-      address,
-      details,
-      location,
-      oldImageUrl,
-      oldCertificatesUrl,
-      oldLogoImageUrl
-    } = req.body;
+// exports.userRegister = async (req, res) => {
+//   try {
+//     const {
+//       userId,
+//       name,
+//       dob,
+//       password,
+//       userType,
+//       email,
+//       mobileNumber,
+//       address,
+//       details,
+//       location,
+//       oldImageUrl,
+//       oldCertificatesUrl,
+//       oldLogoImageUrl
+//     } = req.body;
 
-    let parsedAddress = address ? JSON.parse(address) : {};
-    let parsedDetails = details ? JSON.parse(details) : {};
+//     let parsedAddress = address ? JSON.parse(address) : {};
+//     let parsedDetails = details ? JSON.parse(details) : {};
 
   
-    if (userId == "0") {
-
-      const duplicateUser = await userModel.findOne({
-        $or: [{ email }, { mobileNumber }],
-        isActive: true
-      });
-
-      if (duplicateUser) {
-        return res.json({
-          status: "error",
-          message: "User already exists"
-        });
-      }
-
-      const hashedPassword = await bcryptjs.hash(password, 10);
-
-      const counter = await userIds.findOneAndUpdate(
-        { id: 'userId' },
-        { $inc: { userId: 1 } },
-        { upsert: true, new: true }
-      );
-
-      const newUserId = `LYD${counter.userId}`;
-
-      // Upload files
-      let images = [], certificates = [], logoImages = [];
-
-      if (req.files) {
-        for (const file of req.files) {
-          const url = await uploadToS3(file);
-
-          if (file.fieldname === "image") images.push(url);
-          if (file.fieldname === "certificates") certificates.push(url);
-          if (file.fieldname === "logoImage") logoImages.push(url);
-        }
-      }
-
-      const newUser = new userModel({
-        userId: newUserId,
-        name,
-        dob,
-        password: hashedPassword,
-        userType,
-        email,
-        mobileNumber,
-        location,
-        address: parsedAddress,
-        details: parsedDetails,
-        image: images,
-        certificates,
-        logoImage: logoImages,
-        adminDetails: {
-          isAdmin: false,
-          adminId: newUserId
-        }
-      });
-
-      await newUser.save();
-
-      return res.json({
-        status: "success",
-        message: "User created",
-        data: newUser
-      });
-    }
-
-
-    else {
-
-      const existingUser = await userModel.findOne({ userId });
-
-      if (!existingUser) {
-        return res.json({
-          status: "error",
-          message: "User not found"
-        });
-      }
-
-      let profileImages = oldImageUrl ? JSON.parse(oldImageUrl) : [];
-      let certificatesArr = oldCertificatesUrl ? JSON.parse(oldCertificatesUrl) : [];
-      let logoImagesArr = oldLogoImageUrl ? JSON.parse(oldLogoImageUrl) : [];
-
-      if (req.files) {
-        for (const file of req.files) {
-          const url = await uploadToS3(file);
-
-          if (file.fieldname === "image") profileImages.push(url);
-          if (file.fieldname === "certificates") certificatesArr.push(url);
-          if (file.fieldname === "logoImage") logoImagesArr.push(url);
-        }
-      }
-
-      const updateFields = {
-        name,
-        dob,
-        email,
-        mobileNumber,
-        location,
-        userType,
-        address: parsedAddress,
-        details: parsedDetails,
-        image: [...new Set(profileImages)],
-        certificates: [...new Set(certificatesArr)],
-        logoImage: [...new Set(logoImagesArr)],
-        updatedDate: Date.now()
-      };
-
-      const updatedUser = await userModel.findOneAndUpdate(
-        { userId },
-        { $set: updateFields },
-        { new: true }
-      );
-
-      return res.json({
-        status: "success",
-        message: "User updated",
-        data: updatedUser
-      });
-    }
-
-  } catch (error) {
-    console.error(error);
-    res.json({ status: "error", message: error.message });
-  }
-};
-//   exports.userRegister = async (req, res) => {
-//   try {
-//   const { userId, name,dob,description, password, userType, email, mobileNumber, address, details,location,oldImageUrl, oldCertificatesUrl,
-//   oldLogoImageUrl} = req.body;
-//   let parsedAddress, parsedDetails;
-
-//    if (address) {
-//       try { parsedAddress = JSON.parse(address); } 
-//       catch { return res.json({ status: "error", message: "Address is not valid JSON" }); }
-//    }
-//     if (details) {
-//       try { parsedDetails = JSON.parse(details); } 
-//       catch { return res.json({ status: "error", message: "Details is not valid JSON" }); }
-//     }
-//     // const images = req.files?.image || [];
-//     // const certificates = req.files?.certificates || [];
-//     // const logoImages = req.files?.logoImage || []; 
-
 //     if (userId == "0") {
-//      // if (!name || !dob||  !userType ||!martialStatus|| !email || !mobileNumber || !parsedAddress || !parsedDetails)
-//     if (!name || !dob||  !userType || !email || !mobileNumber || !parsedAddress || !parsedDetails)
 
-//         return res.json({ status: "error", message: "Missing fields" });
+//       const duplicateUser = await userModel.findOne({
+//         $or: [{ email }, { mobileNumber }],
+//         isActive: true
+//       });
 
-//      // if (images.length === 0) return res.json({ status: 'error', message: 'At least one profile image is required' });
+//       if (duplicateUser) {
+//         return res.json({
+//           status: "error",
+//           message: "User already exists"
+//         });
+//       }
 
-//      // const duplicateUser = await userModel.find({ $or: [{ email }, { mobileNumber }] });
-//      // 1. Check admin
-//     let duplicateUser;
-//    // if(!req.body.isAdmin){
-//      duplicateUser = await userModel.findOne({
-//     $or: [
-//     { email: email },
-//     { mobileNumber: mobileNumber }
-//     ],
-//     "adminDetails.isAdmin": "false",
-//     isActive: true
-//     });
-
-
-//   if (duplicateUser) {
-//     return res.json({
-//       status: "error",
-//       message: "User email or mobile number already exists"
-//     });
-//   }
-// //}
-
-//   const adminUser = await userModel.findOne({
-//   $or: [{ email }, { mobileNumber }],
-//   "adminDetails.isAdmin": true,
-//   isActive: true
-//    });
-// //console.log(`sdminid${adminUser.adminDetails?.adminId}`)
-//   if (!duplicateUser||adminUser&& req.body.adminId==adminUser.adminDetails?.adminId) {
-   
-//         // if (password) updateFields.password = await bcryptjs.hash(adminUser.password, 10);
-//  let hashedPassword ;
-//         if(!adminUser){
-//       hashedPassword = await bcryptjs.hash(password, 10);
-//  }
-//  else{
-//   hashedPassword=adminUser.password;
-//  }
-//       console.log("req.body:", req.body);
-//       console.log("req.files:", req.files);
+//       const hashedPassword = await bcryptjs.hash(password, 10);
 
 //       const counter = await userIds.findOneAndUpdate(
-//         { id: 'userId' }, { $inc: { userId: 1 } }, { upsert: true, new: true }
+//         { id: 'userId' },
+//         { $inc: { userId: 1 } },
+//         { upsert: true, new: true }
 //       );
+
 //       const newUserId = `LYD${counter.userId}`;
-//       //  const imagePaths = images.map(file => file.location);
-//       //  console.log(`dfimagpath${imagePaths}`)
-//       //  const certificatePaths = certificates.map(file => file.location);
-//       //  const logoImagesPath = logoImages.map(file => file.location);
-//     const images = [];
-//     const certificates = [];
-//     const logoImages = [];
 
-//     for (const file of req.files) {
-//     const uploadedUrl = await uploadToS3(file); 
-//     console.log(`ghhg${uploadedUrl}`)
-//     switch (file.fieldname) {
-//     case "image":
-//       images.push(uploadedUrl);
-//       break;
-//     case "certificates":
-//       certificates.push(uploadedUrl);
-//       break;
-//     case "logoImage":
-//       logoImages.push(uploadedUrl);
-//       break;
-//      }
-//       }
+    
+//       let images = [], certificates = [], logoImages = [];
 
-// const addressUpdate = {
-//   state: parsedAddress.state || "",
-//   district: parsedAddress.district || "",
-//   city: parsedAddress.city || "",
-//   area: parsedAddress.area || "",
-//   pincode: parsedAddress.pincode || "",
-// };
+//       if (req.files) {
+//         for (const file of req.files) {
+//           const url = await uploadToS3(file);
 
-// // Only add geoLocation if both latitude and longitude exist
-// if (parsedAddress.latitude && parsedAddress.longitude) {
-//   addressUpdate.geoLocation = {
-//     type: 'Point',
-//     coordinates: [
-//       Number(parsedAddress.longitude), // longitude first
-//       Number(parsedAddress.latitude)   // latitude second
-//     ],
-//   };
-// }
-//         // const newUser = new userModel({
-//         // userId: newUserId,
-//         // name,dob, password: hashedPassword, userType, email, mobileNumber,martialStatus,
-//         // address: parsedAddress, details: parsedDetails,
-//         // image: images,
-//         // certificates: certificates,
-//         // logoImage: logoImages, 
-//         // });
-//   const newUser = new userModel({
-//   userId: newUserId,
-//   name,
-//   dob,
-//   // martialStatus,
-//   password: hashedPassword,
-//  // description:description??"",
-//   location:location,
-//   userType,
-//   email,
-//   mobileNumber,
-//    address:addressUpdate,
-//   details: parsedDetails,
-//   image: images,
-//   certificates: certificates,
-//   logoImage: logoImages,
-//   adminDetails: {
-//   isAdmin: req.body.isAdmin,
-//   adminId: req.body.isAdmin ? newUserId : req.body.adminId
-// }
-// });
-//   //  const loginModel= userLoginModel({userId:newUserId,email:email,password:hashedPassword,userType:userType})
-//   //        await loginModel.save()
-//           await newUser.save();
-//   //     //sendWhatsAppTemplate("918489792275", "client_welcome_2",[name])
-//   //     await sendWhatsAppTemplate(`${mobileNumber}`, "client_welcome_2",[name])
-   
-//       const response = await axios.post( `${process.env.base_url}lyd/user/create_email`,
-//       {
-//         userId: newUserId,
-//         subject: "New Registeration",
-//         title: "new",
-//         message: "new user added successfully"
-//       },
-//       {
-//         headers: {
-//           "Content-Type": "application/json",
-//           //Authorization: `Bearer ${token}`
+//           if (file.fieldname === "image") images.push(url);
+//           if (file.fieldname === "certificates") certificates.push(url);
+//           if (file.fieldname === "logoImage") logoImages.push(url);
 //         }
 //       }
-//     );
-//    console.log("Mail response:", response.data);
-//    console.error( "Mail error:", error.response?.data || error.message );
-//        await sendRegistrationOtp(newUserId); 
-//    if (userType !== 'admin' && userType !== 'superAdmin' && userType !== 'Job Seekers') {
-//      await assignFreePlanToUser(newUserId,userType)
-//    }
-//     res.json({ status: "success", message: "User registered successfully", data: newUser });
-//    } 
-//   } else {
-//     const existingUser = await userModel.findOne({ userId });
-//   if (!existingUser) return res.json({ status: "error", message: "User not found" });
-// let parsedOldImages = [];
-// let parsedOldCertificates = [];
-// let parsedOldLogoImages = [];
 
-// if (oldImageUrl) parsedOldImages = JSON.parse(oldImageUrl);
-// if (oldCertificatesUrl) parsedOldCertificates = JSON.parse(oldCertificatesUrl);
-// if (oldLogoImageUrl) parsedOldLogoImages = JSON.parse(oldLogoImageUrl);
-// // let profileImages = existingUser.image || [];
-// // let certificatesArr = existingUser.certificates || [];
-// // let logoImagesArr = existingUser.logoImage || [];
-// let profileImages = parsedOldImages || [];
-// let certificatesArr = parsedOldCertificates || [];
-// let logoImagesArr = parsedOldLogoImages || [];
+//       const newUser = new userModel({
+//         userId: newUserId,
+//         name,
+//         dob,
+//         password: hashedPassword,
+//         userType,
+//         email,
+//         mobileNumber,
+//         location,
+//         address: parsedAddress,
+//         details: parsedDetails,
+//         image: images,
+//         certificates,
+//         logoImage: logoImages,
+//         adminDetails: {
+//           isAdmin: false,
+//           adminId: newUserId
+//         }
+//       });
 
-//       // if (images.length) profileImages.push(...images.map(f => f.path));
-//       // if (certificates.length) certificatesArr.push(...certificates.map(f => f.path));
-     
-//   if (req.files && req.files.length > 0) {
-//   for (const file of req.files) {
-//     const uploadedUrl = await uploadToS3(file);
+//       await newUser.save();
 
-//     switch (file.fieldname) {
-//       case "image":
-//         profileImages.push(uploadedUrl);
-//         break;
-
-//       case "certificates":
-//         certificatesArr.push(uploadedUrl);
-//         break;
-
-//       case "logoImage":
-//         logoImagesArr.push(uploadedUrl);
-//         break;
+//       return res.json({
+//         status: "success",
+//         message: "User created",
+//         data: newUser
+//       });
 //     }
-//   }
-// }
-//    //  if (images.length) profileImages.push(...images.map(f => f.location));
-//       // if  (certificates.length) certificatesArr.push(...certificates.map(f => f.location));
-//       // if  (logoImages.length) logoImages.push(...logoImages.map(f => f.location));
-// profileImages = [...new Set(profileImages)];
-// certificatesArr = [...new Set(certificatesArr)];
-// logoImagesArr = [...new Set(logoImagesArr)];
-//       const updateFields = {};
-//       if (name) updateFields.name = name;
-//       // if (username) updateFields.username = username;
-//      // if (password) updateFields.password = await bcryptjs.hash(password, 10);
-//       if (userType) updateFields.userType = userType;
-//       if (dob) updateFields.dob=dob;
-//       if (email) updateFields.email = email;
-//       if (location) updateFields.location = location;
-//       // if (martialStatus) updateFields.martialStatus=martialStatus;
-//       if (mobileNumber) updateFields.mobileNumber = mobileNumber;
-//       if (parsedAddress) updateFields.address = parsedAddress;
-//       if (parsedDetails) updateFields.details = parsedDetails;
-//       updateFields.image = profileImages;
-//       updateFields.certificates = certificatesArr;
-//       updateFields.logoImage = logoImagesArr;
-//       updateFields.updatedDate = Date.now();
-//      // const parsedAddress = JSON.parse(req.body.address || "{}");
-// const latitude = parsedAddress.latitude;
-// const longitude = parsedAddress.longitude;
 
-// // Build the address object to update
-// const addressUpdate = {
-//   state: parsedAddress.state,
-//   district: parsedAddress.district,
-//   city: parsedAddress.city,
-//   area: parsedAddress.area,
-//   pincode: parsedAddress.pincode,
-// };
 
-// // Only add geoLocation if latitude & longitude are present
-// if (latitude && longitude) {
-//   addressUpdate.geoLocation = {
-//     type: 'Point',
-//     coordinates: [Number(longitude), Number(latitude)], 
-//   };
-// }
+//     else {
 
-// // Merge with updateFields
-// updateFields.address = addressUpdate;
-//       const updatedUser = await userModel.findOneAndUpdate({ userId }, { $set: updateFields }, { new: true });
-//       return res.json({ status: "success", message: "User updated successfully", data: updatedUser });
+//       const existingUser = await userModel.findOne({ userId });
+
+//       if (!existingUser) {
+//         return res.json({
+//           status: "error",
+//           message: "User not found"
+//         });
+//       }
+
+//       let profileImages = oldImageUrl ? JSON.parse(oldImageUrl) : [];
+//       let certificatesArr = oldCertificatesUrl ? JSON.parse(oldCertificatesUrl) : [];
+//       let logoImagesArr = oldLogoImageUrl ? JSON.parse(oldLogoImageUrl) : [];
+
+//       if (req.files) {
+//         for (const file of req.files) {
+//           const url = await uploadToS3(file);
+
+//           if (file.fieldname === "image") profileImages.push(url);
+//           if (file.fieldname === "certificates") certificatesArr.push(url);
+//           if (file.fieldname === "logoImage") logoImagesArr.push(url);
+//         }
+//       }
+
+//       const updateFields = {
+//         name,
+//         dob,
+//         email,
+//         mobileNumber,
+//         location,
+//         userType,
+//         address: parsedAddress,
+//         details: parsedDetails,
+//         image: [...new Set(profileImages)],
+//         certificates: [...new Set(certificatesArr)],
+//         logoImage: [...new Set(logoImagesArr)],
+//         updatedDate: Date.now()
+//       };
+
+//       const updatedUser = await userModel.findOneAndUpdate(
+//         { userId },
+//         { $set: updateFields },
+//         { new: true }
+//       );
+
+//       return res.json({
+//         status: "success",
+//         message: "User updated",
+//         data: updatedUser
+//       });
 //     }
-//     } catch (error) {
+
+//   } catch (error) {
 //     console.error(error);
 //     res.json({ status: "error", message: error.message });
 //   }
 // };
+  exports.userRegister = async (req, res) => {
+  try {
+  const { userId, name,dob,description, password, userType, email, mobileNumber, address, details,location,oldImageUrl, oldCertificatesUrl,
+  oldLogoImageUrl} = req.body;
+  let parsedAddress, parsedDetails;
+
+   if (address) {
+      try { parsedAddress = JSON.parse(address); } 
+      catch { return res.json({ status: "error", message: "Address is not valid JSON" }); }
+   }
+    if (details) {
+      try { parsedDetails = JSON.parse(details); } 
+      catch { return res.json({ status: "error", message: "Details is not valid JSON" }); }
+    }
+    // const images = req.files?.image || [];
+    // const certificates = req.files?.certificates || [];
+    // const logoImages = req.files?.logoImage || []; 
+
+    if (userId == "0") {
+     // if (!name || !dob||  !userType ||!martialStatus|| !email || !mobileNumber || !parsedAddress || !parsedDetails)
+    if (!name || !dob||  !userType || !email || !mobileNumber || !parsedAddress || !parsedDetails)
+
+        return res.json({ status: "error", message: "Missing fields" });
+
+     // if (images.length === 0) return res.json({ status: 'error', message: 'At least one profile image is required' });
+
+     // const duplicateUser = await userModel.find({ $or: [{ email }, { mobileNumber }] });
+     // 1. Check admin
+    let duplicateUser;
+   // if(!req.body.isAdmin){
+     duplicateUser = await userModel.findOne({
+    $or: [
+    { email: email },
+    { mobileNumber: mobileNumber }
+    ],
+    "adminDetails.isAdmin": "false",
+    isActive: true
+    });
+
+
+  if (duplicateUser) {
+    return res.json({
+      status: "error",
+      message: "User email or mobile number already exists"
+    });
+  }
+//}
+
+  const adminUser = await userModel.findOne({
+  $or: [{ email }, { mobileNumber }],
+  "adminDetails.isAdmin": true,
+  isActive: true
+   });
+//console.log(`sdminid${adminUser.adminDetails?.adminId}`)
+  if (!duplicateUser||adminUser&& req.body.adminId==adminUser.adminDetails?.adminId) {
+   
+        // if (password) updateFields.password = await bcryptjs.hash(adminUser.password, 10);
+ let hashedPassword ;
+        if(!adminUser){
+      hashedPassword = await bcryptjs.hash(password, 10);
+ }
+ else{
+  hashedPassword=adminUser.password;
+ }
+      console.log("req.body:", req.body);
+      console.log("req.files:", req.files);
+
+      const counter = await userIds.findOneAndUpdate(
+        { id: 'userId' }, { $inc: { userId: 1 } }, { upsert: true, new: true }
+      );
+      const newUserId = `LYD${counter.userId}`;
+      //  const imagePaths = images.map(file => file.location);
+      //  console.log(`dfimagpath${imagePaths}`)
+      //  const certificatePaths = certificates.map(file => file.location);
+      //  const logoImagesPath = logoImages.map(file => file.location);
+    const images = [];
+    const certificates = [];
+    const logoImages = [];
+
+    for (const file of req.files) {
+    const uploadedUrl = await uploadToS3(file); 
+    console.log(`ghhg${uploadedUrl}`)
+    switch (file.fieldname) {
+    case "image":
+      images.push(uploadedUrl);
+      break;
+    case "certificates":
+      certificates.push(uploadedUrl);
+      break;
+    case "logoImage":
+      logoImages.push(uploadedUrl);
+      break;
+     }
+      }
+
+const addressUpdate = {
+  state: parsedAddress.state || "",
+  district: parsedAddress.district || "",
+  city: parsedAddress.city || "",
+  area: parsedAddress.area || "",
+  pincode: parsedAddress.pincode || "",
+};
+
+if (parsedAddress.latitude && parsedAddress.longitude) {
+  addressUpdate.geoLocation = {
+    type: 'Point',
+    coordinates: [
+      Number(parsedAddress.longitude), // longitude first
+      Number(parsedAddress.latitude)   // latitude second
+    ],
+  };
+}
+        // const newUser = new userModel({
+        // userId: newUserId,
+        // name,dob, password: hashedPassword, userType, email, mobileNumber,martialStatus,
+        // address: parsedAddress, details: parsedDetails,
+        // image: images,
+        // certificates: certificates,
+        // logoImage: logoImages, 
+        // });
+  const newUser = new userModel({
+  userId: newUserId,
+  name,
+  dob,
+  // martialStatus,
+  password: hashedPassword,
+ // description:description??"",
+  location:location,
+  userType,
+  email,
+  mobileNumber,
+   address:addressUpdate,
+  details: parsedDetails,
+  image: images,
+  certificates: certificates,
+  logoImage: logoImages,
+  adminDetails: {
+  isAdmin: req.body.isAdmin,
+  adminId: req.body.isAdmin ? newUserId : req.body.adminId
+}
+});
+  //  const loginModel= userLoginModel({userId:newUserId,email:email,password:hashedPassword,userType:userType})
+  //        await loginModel.save()
+          await newUser.save();
+  //     //sendWhatsAppTemplate("918489792275", "client_welcome_2",[name])
+  //     await sendWhatsAppTemplate(`${mobileNumber}`, "client_welcome_2",[name])
+   
+      const response = await axios.post( `${process.env.base_url}lyd/user/create_email`,
+      {
+        userId: newUserId,
+        subject: "New Registeration",
+        title: "new",
+        message: "new user added successfully"
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          //Authorization: `Bearer ${token}`
+        }
+      }
+    );
+   console.log("Mail response:", response.data);
+   console.error( "Mail error:", error.response?.data || error.message );
+       await sendRegistrationOtp(newUserId); 
+   if (userType !== 'admin' && userType !== 'superAdmin' && userType !== 'Job Seekers') {
+     await assignFreePlanToUser(newUserId,userType)
+   }
+    res.json({ status: "success", message: "User registered successfully", data: newUser });
+   } 
+  } else {
+    const existingUser = await userModel.findOne({ userId });
+  if (!existingUser) return res.json({ status: "error", message: "User not found" });
+let parsedOldImages = [];
+let parsedOldCertificates = [];
+let parsedOldLogoImages = [];
+
+if (oldImageUrl) parsedOldImages = JSON.parse(oldImageUrl);
+if (oldCertificatesUrl) parsedOldCertificates = JSON.parse(oldCertificatesUrl);
+if (oldLogoImageUrl) parsedOldLogoImages = JSON.parse(oldLogoImageUrl);
+// let profileImages = existingUser.image || [];
+// let certificatesArr = existingUser.certificates || [];
+// let logoImagesArr = existingUser.logoImage || [];
+let profileImages = parsedOldImages || [];
+let certificatesArr = parsedOldCertificates || [];
+let logoImagesArr = parsedOldLogoImages || [];
+
+      // if (images.length) profileImages.push(...images.map(f => f.path));
+      // if (certificates.length) certificatesArr.push(...certificates.map(f => f.path));
+     
+  if (req.files && req.files.length > 0) {
+  for (const file of req.files) {
+    const uploadedUrl = await uploadToS3(file);
+
+    switch (file.fieldname) {
+      case "image":
+        profileImages.push(uploadedUrl);
+        break;
+
+      case "certificates":
+        certificatesArr.push(uploadedUrl);
+        break;
+
+      case "logoImage":
+        logoImagesArr.push(uploadedUrl);
+        break;
+    }
+  }
+}
+   //  if (images.length) profileImages.push(...images.map(f => f.location));
+      // if  (certificates.length) certificatesArr.push(...certificates.map(f => f.location));
+      // if  (logoImages.length) logoImages.push(...logoImages.map(f => f.location));
+profileImages = [...new Set(profileImages)];
+certificatesArr = [...new Set(certificatesArr)];
+logoImagesArr = [...new Set(logoImagesArr)];
+      const updateFields = {};
+      if (name) updateFields.name = name;
+      // if (username) updateFields.username = username;
+     // if (password) updateFields.password = await bcryptjs.hash(password, 10);
+      if (userType) updateFields.userType = userType;
+      if (dob) updateFields.dob=dob;
+      if (email) updateFields.email = email;
+      if (location) updateFields.location = location;
+      // if (martialStatus) updateFields.martialStatus=martialStatus;
+      if (mobileNumber) updateFields.mobileNumber = mobileNumber;
+      if (parsedAddress) updateFields.address = parsedAddress;
+      if (parsedDetails) updateFields.details = parsedDetails;
+      updateFields.image = profileImages;
+      updateFields.certificates = certificatesArr;
+      updateFields.logoImage = logoImagesArr;
+      updateFields.updatedDate = Date.now();
+     // const parsedAddress = JSON.parse(req.body.address || "{}");
+const latitude = parsedAddress.latitude;
+const longitude = parsedAddress.longitude;
+
+// Build the address object to update
+const addressUpdate = {
+  state: parsedAddress.state,
+  district: parsedAddress.district,
+  city: parsedAddress.city,
+  area: parsedAddress.area,
+  pincode: parsedAddress.pincode,
+};
+
+// Only add geoLocation if latitude & longitude are present
+if (latitude && longitude) {
+  addressUpdate.geoLocation = {
+    type: 'Point',
+    coordinates: [Number(longitude), Number(latitude)], 
+  };
+}
+
+// Merge with updateFields
+updateFields.address = addressUpdate;
+      const updatedUser = await userModel.findOneAndUpdate({ userId }, { $set: updateFields }, { new: true });
+      return res.json({ status: "success", message: "User updated successfully", data: updatedUser });
+    }
+    } catch (error) {
+    console.error(error);
+    res.json({ status: "error", message: error.message });
+  }
+};
 
 const PHONE_NUMBER_ID = `${process.env.PHONE_NUMBER_ID}`;;
 const TOKEN = `${process.env.WHATSAPP_ACCESS_TOKEN}`;
