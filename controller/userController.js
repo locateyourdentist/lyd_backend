@@ -686,11 +686,8 @@ exports.userRegister = async (req, res) => {
       await newUser.save();
 
       // SEND EMAIL
-
-      try {
-
-        const response = await axios.post(
-          `${process.env.base_url}lyd/user/create_email`,
+   try {
+   const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
           {
             userId: newUserId,
             subject: "New Registration",
@@ -707,10 +704,7 @@ exports.userRegister = async (req, res) => {
       }
 
       // SEND OTP
-
-      await sendRegistrationOtp(newUserId);
-
-      // ASSIGN FREE PLAN
+    await sendRegistrationOtp(newUserId);
 
       if (
         userType !== "admin" &&
@@ -728,10 +722,7 @@ exports.userRegister = async (req, res) => {
       });
     }
 
-    // =========================================================
     // UPDATE USER
-    // =========================================================
-
     else {
 
       const existingUser = await userModel.findOne({ userId });
@@ -760,12 +751,8 @@ exports.userRegister = async (req, res) => {
       let profileImages = parsedOldImages || [];
       let certificatesArr = parsedOldCertificates || [];
       let logoImagesArr = parsedOldLogoImages || [];
-
-      // NEW FILES
-
       if (req.files && req.files.length > 0) {
-
-        for (const file of req.files) {
+         for (const file of req.files) {
 
           const uploadedUrl = await uploadToS3(file);
 
@@ -810,8 +797,6 @@ exports.userRegister = async (req, res) => {
           ]
         };
       }
-
-      // UPDATE DATA
 
       const updateFields = {
         name,
@@ -1344,10 +1329,8 @@ const assignFreePlanToUser = async (newUserId, userType) => {
     const planName = plan.planName;
     const price = plan.price;
     const duration = Number(plan.duration); 
-
-    // 2. Calculate dates
     const { startDate, endDate } = calculatePlanDates(duration);
-        const user = await userModel.findOne({ userId:newUserId,isActive:true});
+    const user = await userModel.findOne({ userId:newUserId,isActive:true});
 
     // const token = jwt.sign(
     //   { userId: user.userId, userName: user.name, userType: user.userType },
