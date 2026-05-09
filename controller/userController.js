@@ -508,6 +508,7 @@ if (filters.latitude && filters.longitude) {
 };
 exports.userRegister = async (req, res) => {
   try {
+
     const {
       userId,
       name,
@@ -527,8 +528,7 @@ exports.userRegister = async (req, res) => {
     let parsedAddress = {};
     let parsedDetails = {};
 
-    // ---------------- PARSE JSON ----------------
-
+    // PARSE JSON
     if (address) {
       try {
         parsedAddress = JSON.parse(address);
@@ -570,51 +570,32 @@ exports.userRegister = async (req, res) => {
         });
       }
 
-      const isAdmin =
-        req.body.isAdmin === true ||
-        req.body.isAdmin === "true";
+      // CHECK DUPLICATE
+      // SAME EMAIL/MOBILE ALLOWED ONLY FOR ADMIN USERS
 
-      // ---------------- DUPLICATE CHECK ----------------
+      if (!req.body.isAdmin) {
 
-      let duplicateUser;
-
-      if (!isAdmin) {
-
-        // NORMAL USER
-        duplicateUser = await userModel.findOne({
+        const duplicateUser = await userModel.findOne({
           $or: [
-            { email: email },
-            { mobileNumber: mobileNumber }
+            { email: email.trim() },
+            { mobileNumber: mobileNumber.trim() }
           ],
           isActive: true
         });
 
-      } else {
-
-        // ADMIN USER
-        duplicateUser = await userModel.findOne({
-          $or: [
-            { email: email },
-            { mobileNumber: mobileNumber }
-          ],
-          "adminDetails.isAdmin": true,
-          isActive: true
-        });
+        if (duplicateUser) {
+          return res.json({
+            status: "error",
+            message: "User email or mobile number already exists"
+          });
+        }
       }
 
-      if (duplicateUser) {
-        return res.json({
-          status: "error",
-          message: "User email or mobile number already exists"
-        });
-      }
+      // HASH PASSWORD
 
-      // ---------------- PASSWORD ----------------
+      const hashedPassword = await bcryptjs.hash(password, 10);
 
-      const hashedPassword =
-        await bcryptjs.hash(password, 10);
-
-      // ---------------- USER ID ----------------
+      // GENERATE USER ID
 
       const counter = await userIds.findOneAndUpdate(
         { id: "userId" },
@@ -624,7 +605,7 @@ exports.userRegister = async (req, res) => {
 
       const newUserId = `LYD${counter.userId}`;
 
-      // ---------------- FILES ----------------
+      // FILES
 
       const images = [];
       const certificates = [];
@@ -653,20 +634,18 @@ exports.userRegister = async (req, res) => {
         }
       }
 
-      // ---------------- ADDRESS ----------------
+      // ADDRESS
 
       const addressUpdate = {
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
         area: parsedAddress.area || "",
-        pincode: parsedAddress.pincode || ""
+        pincode: parsedAddress.pincode || "",
       };
 
-      if (
-        parsedAddress.latitude &&
-        parsedAddress.longitude
-      ) {
+      if (parsedAddress.latitude && parsedAddress.longitude) {
+
         addressUpdate.geoLocation = {
           type: "Point",
           coordinates: [
@@ -676,7 +655,7 @@ exports.userRegister = async (req, res) => {
         };
       }
 
-      // ---------------- CREATE USER ----------------
+      // CREATE USER
 
       const newUser = new userModel({
         userId: newUserId,
@@ -684,43 +663,62 @@ exports.userRegister = async (req, res) => {
         dob,
         password: hashedPassword,
         userType,
-        email,
-        mobileNumber,
-        location,
-
+        email: email.trim(),
+        mobileNumber: mobileNumber.trim(),
+        location: location || "",
         address: addressUpdate,
-
         details: parsedDetails,
-
         image: images,
         certificates: certificates,
         logoImage: logoImages,
 
         adminDetails: {
-          isAdmin: isAdmin,
-          adminId: isAdmin
-            ? newUserId
-            : (req.body.adminId || "")
+          isAdmin: req.body.isAdmin || false,
+          adminId: req.body.isAdmin
+              ? newUserId
+              : (req.body.adminId || ""),
+          branch: []
         }
       });
 
+      // SAVE USER
+
       await newUser.save();
 
-      // ---------------- SEND OTP ----------------
+      // SEND EMAIL
+
+      try {
+
+        const response = await axios.post(
+          `${process.env.base_url}lyd/user/create_email`,
+          {
+            userId: newUserId,
+            subject: "New Registration",
+            title: "new",
+            message: "new user added successfully"
+          }
+        );
+
+        console.log("Mail response:", response.data);
+
+      } catch (mailError) {
+
+        console.log("Mail send failed:", mailError.message);
+      }
+
+      // SEND OTP
 
       await sendRegistrationOtp(newUserId);
 
-      // ---------------- FREE PLAN ----------------
+      // ASSIGN FREE PLAN
 
       if (
         userType !== "admin" &&
         userType !== "superAdmin" &&
         userType !== "Job Seekers"
       ) {
-        await assignFreePlanToUser(
-          newUserId,
-          userType
-        );
+
+        await assignFreePlanToUser(newUserId, userType);
       }
 
       return res.json({
@@ -736,11 +734,10 @@ exports.userRegister = async (req, res) => {
 
     else {
 
-      const existingUser = await userModel.findOne({
-        userId
-      });
+      const existingUser = await userModel.findOne({ userId });
 
       if (!existingUser) {
+
         return res.json({
           status: "error",
           message: "User not found"
@@ -751,23 +748,20 @@ exports.userRegister = async (req, res) => {
       let parsedOldCertificates = [];
       let parsedOldLogoImages = [];
 
-      if (oldImageUrl) {
+      if (oldImageUrl)
         parsedOldImages = JSON.parse(oldImageUrl);
-      }
 
-      if (oldCertificatesUrl) {
+      if (oldCertificatesUrl)
         parsedOldCertificates = JSON.parse(oldCertificatesUrl);
-      }
 
-      if (oldLogoImageUrl) {
+      if (oldLogoImageUrl)
         parsedOldLogoImages = JSON.parse(oldLogoImageUrl);
-      }
 
       let profileImages = parsedOldImages || [];
       let certificatesArr = parsedOldCertificates || [];
       let logoImagesArr = parsedOldLogoImages || [];
 
-      // ---------------- FILES ----------------
+      // NEW FILES
 
       if (req.files && req.files.length > 0) {
 
@@ -796,38 +790,18 @@ exports.userRegister = async (req, res) => {
       certificatesArr = [...new Set(certificatesArr)];
       logoImagesArr = [...new Set(logoImagesArr)];
 
-      // ---------------- UPDATE FIELDS ----------------
-
-      const updateFields = {};
-
-      if (name) updateFields.name = name;
-      if (dob) updateFields.dob = dob;
-      if (userType) updateFields.userType = userType;
-      if (email) updateFields.email = email;
-      if (mobileNumber) updateFields.mobileNumber = mobileNumber;
-      if (location) updateFields.location = location;
-      if (parsedDetails) updateFields.details = parsedDetails;
-
-      updateFields.image = profileImages;
-      updateFields.certificates = certificatesArr;
-      updateFields.logoImage = logoImagesArr;
-
-      updateFields.updatedDate = Date.now();
-
-      // ---------------- ADDRESS ----------------
+      // UPDATE ADDRESS
 
       const addressUpdate = {
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
         area: parsedAddress.area || "",
-        pincode: parsedAddress.pincode || ""
+        pincode: parsedAddress.pincode || "",
       };
 
-      if (
-        parsedAddress.latitude &&
-        parsedAddress.longitude
-      ) {
+      if (parsedAddress.latitude && parsedAddress.longitude) {
+
         addressUpdate.geoLocation = {
           type: "Point",
           coordinates: [
@@ -837,16 +811,28 @@ exports.userRegister = async (req, res) => {
         };
       }
 
-      updateFields.address = addressUpdate;
+      // UPDATE DATA
 
-      // ---------------- UPDATE USER ----------------
+      const updateFields = {
+        name,
+        dob,
+        userType,
+        email: email?.trim(),
+        mobileNumber: mobileNumber?.trim(),
+        location,
+        address: addressUpdate,
+        details: parsedDetails,
+        image: profileImages,
+        certificates: certificatesArr,
+        logoImage: logoImagesArr,
+        updatedDate: Date.now()
+      };
 
-      const updatedUser =
-        await userModel.findOneAndUpdate(
-          { userId },
-          { $set: updateFields },
-          { new: true }
-        );
+      const updatedUser = await userModel.findOneAndUpdate(
+        { userId },
+        { $set: updateFields },
+        { new: true }
+      );
 
       return res.json({
         status: "success",
@@ -857,15 +843,14 @@ exports.userRegister = async (req, res) => {
 
   } catch (error) {
 
-    console.error(error);
+    console.error("REGISTER ERROR:", error);
 
     return res.json({
       status: "error",
       message: error.message
     });
   }
-};
-//neww
+};//neww
 // exports.userRegister = async (req, res) => {
 //   try {
 //     const {
