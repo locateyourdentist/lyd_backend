@@ -683,8 +683,7 @@ exports.userRegister = async (req, res) => {
 
       // SAVE USER
      await newUser.save();
-
-      // SEND EMAIL
+     // SEND EMAIL
    try {
    const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
           {
@@ -694,10 +693,8 @@ exports.userRegister = async (req, res) => {
             message: "new user added successfully"
           }
         );
-
-        console.log("Mail response:", response.data);
-
-      } catch (mailError) {
+       console.log("Mail response:", response.data);
+  } catch (mailError) {
 
         console.log("Mail send failed:", mailError.message);
       }
