@@ -682,8 +682,7 @@ exports.userRegister = async (req, res) => {
       });
 
       // SAVE USER
-
-      await newUser.save();
+     await newUser.save();
 
       // SEND EMAIL
    try {
