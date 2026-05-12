@@ -2934,63 +2934,153 @@ const expirePosterImagesIfNeeded = async () => {
     console.error("Poster image expiry check failed:", error);
   }
 };
-
 exports.getUploadImages = async (req, res) => {
+
   const { userType, userId } = req.body;
 
   try {
+
     const today = new Date();
 
-    const matchStage = { userType: { $regex: `^${userType}$`, $options: "i" } };
-    if (userId) matchStage.userId = userId;
+    const matchStage = {
+      userType: {
+        $regex: `^${userType}$`,
+        $options: "i"
+      }
+    };
+
+    if (userId) {
+      matchStage.userId = userId;
+    }
 
     const records = await uploadAdminImages.find(matchStage);
 
-    const activeImages = [];
+    const images = [];
+
     records.forEach(record => {
+
       record.posterImages.forEach(img => {
-        if (img.endDate && img.endDate !== "null") {
-          const [day, month, year] = img.endDate.split("-").map(Number);
-          const end = new Date(year, month - 1, day);
-          if (end >= today) {
-            activeImages.push({
-              _id: img._id,
-              path: img.path,
-              startDate: img.startDate,
-              endDate: img.endDate,
-              userId: record.userId,
-              userType: record.userType,
-              isActive: true
-            });
+
+        let isExpired = false;
+
+        // CHECK EXPIRY ONLY
+        if (
+          img.endDate &&
+          img.endDate !== "" &&
+          img.endDate !== "null"
+        ) {
+
+          const [day, month, year] =
+              img.endDate.split("-").map(Number);
+
+          const endDate =
+              new Date(year, month - 1, day);
+
+          if (endDate < today) {
+            isExpired = true;
           }
-        } else if (!img.endDate || img.endDate === "null") {
-          activeImages.push({
-            _id: img._id,
-            path: img.path,
-            startDate: img.startDate,
-            endDate: img.endDate,
-            userId: record.userId,
-            userType: record.userType,
-            isActive: true
-          });
         }
+
+        // SKIP ONLY EXPIRED
+        if (isExpired) return;
+
+        // RETURN ALL NON-EXPIRED IMAGES
+        images.push({
+
+          _id: img._id,
+
+          path: img.path,
+
+          startDate: img.startDate || "",
+
+          endDate: img.endDate || "",
+
+          userId: record.userId,
+
+          userType: record.userType,
+
+          // IMPORTANT
+          isActive: img.isActive ?? true
+        });
       });
     });
 
     return res.send({
+
       status: "success",
-      message: activeImages.length ? "Images fetched successfully" : "No images found",
-      data: activeImages
+
+      message:
+          images.length > 0
+              ? "Images fetched successfully"
+              : "No images found",
+
+      data: images
     });
 
   } catch (error) {
+
     console.error(error);
-    return res.status(500).send({
-      status: "error",
-      message: error.message
+     return res.send({
+      status: "error",message: error.message
     });
   }
 };
+// exports.getUploadImages = async (req, res) => {
+//   const { userType, userId } = req.body;
+
+//   try {
+//     const today = new Date();
+
+//     const matchStage = { userType: { $regex: `^${userType}$`, $options: "i" } };
+//     if (userId) matchStage.userId = userId;
+
+//     const records = await uploadAdminImages.find(matchStage);
+
+//     const activeImages = [];
+//     records.forEach(record => {
+//       record.posterImages.forEach(img => {
+//         if (img.endDate && img.endDate !== "null") {
+//           const [day, month, year] = img.endDate.split("-").map(Number);
+//           const end = new Date(year, month - 1, day);
+//           if (end >= today) {
+//             activeImages.push({
+//               _id: img._id,
+//               path: img.path,
+//               startDate: img.startDate,
+//               endDate: img.endDate,
+//               userId: record.userId,
+//               userType: record.userType,
+//               isActive: true
+//             });
+//           }
+//         } else if (!img.endDate || img.endDate === "null") {
+//           activeImages.push({
+//             _id: img._id,
+//             path: img.path,
+//             startDate: img.startDate,
+//             endDate: img.endDate,
+//             userId: record.userId,
+//             userType: record.userType,
+//             isActive: true
+//           });
+//         }
+//       });
+//     });
+
+//     return res.send({
+//       status: "success",
+//       message: activeImages.length ? "Images fetched successfully" : "No images found",
+//       data: activeImages
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).send({
+//       status: "error",
+//       message: error.message
+//     });
+//   }
+// };
 // exports.getUploadImages = async (req, res) => {
 //   const { userType, userId } = req.body;
 
