@@ -2409,9 +2409,9 @@ exports.postImagesAdmin = async (req, res) => {
       image.path = await uploadToS3(file);
     }
 
-    if (preference !== undefined) {
-      image.preference = Number(preference);
-    }
+    // if (preference !== undefined) {
+    //   image.preference = Number(preference);
+    // }
 
     if (startDate !== undefined) {
       image.startDate = startDate;
