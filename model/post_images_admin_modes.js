@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
   posterImages: [
     {
       path: String,       
-      preference: Number, 
+     // preference: Number, 
       uploadedAt: { type: Date, default: Date.now },
       isActive:{default:true,type:Boolean},
       startDate:{type:String},

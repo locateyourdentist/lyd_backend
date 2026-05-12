@@ -680,8 +680,7 @@ exports.userRegister = async (req, res) => {
           branch: []
         }
       });
-
-      // SAVE USER
+    // SAVE USER
      await newUser.save();
      // SEND EMAIL
    try {
@@ -2330,8 +2329,7 @@ exports.job_email = async (req, res) => {
     return res.send({ status: "error", message: "Internal Server Error" });
   }
 };
- 
-  exports.postImagesAdmin = async (req, res) => {
+exports.postImagesAdmin = async (req, res) => {
   try {
     const {
       userId,
@@ -2363,7 +2361,9 @@ exports.job_email = async (req, res) => {
       });
     }
 
-    if (!imageId || imageId === "0") {
+    // CREATE
+    if (!imageId || imageId === "0" || imageId === "") {
+
       if (!file) {
         return res.json({
           status: "error",
@@ -2378,11 +2378,14 @@ exports.job_email = async (req, res) => {
         preference: preference ? Number(preference) : 0,
         startDate: startDate || "",
         endDate: endDate || "",
-        isActive: isActive === "true",
+        isActive:
+          isActive === true ||
+          isActive === "true",
         uploadedAt: new Date()
       };
 
       record.posterImages.push(newImage);
+
       await record.save();
 
       return res.json({
@@ -2392,6 +2395,7 @@ exports.job_email = async (req, res) => {
       });
     }
 
+    // UPDATE
     const image = record.posterImages.id(imageId);
 
     if (!image) {
@@ -2405,17 +2409,23 @@ exports.job_email = async (req, res) => {
       image.path = await uploadToS3(file);
     }
 
-    if (preference !== undefined && preference !== null)
+    if (preference !== undefined) {
       image.preference = Number(preference);
+    }
 
-    if (startDate !== undefined)
+    if (startDate !== undefined) {
       image.startDate = startDate;
+    }
 
-    if (endDate !== undefined)
+    if (endDate !== undefined) {
       image.endDate = endDate;
+    }
 
-    if (isActive !== undefined)
-      image.isActive = isActive === "true";
+    if (isActive !== undefined) {
+      image.isActive =
+        isActive === true ||
+        isActive === "true";
+    }
 
     image.uploadedAt = new Date();
 
@@ -2429,12 +2439,118 @@ exports.job_email = async (req, res) => {
 
   } catch (err) {
     console.error(err);
+
     return res.json({
       status: "error",
       message: err.message
     });
   }
-  };
+};
+ 
+  // exports.postImagesAdmin = async (req, res) => {
+  // try {
+  //   const {
+  //     userId,
+  //     userType,
+  //     imageId,
+  //     preference,
+  //     startDate,
+  //     endDate,
+  //     isActive
+  //   } = req.body;
+
+  //   if (!userId || !userType) {
+  //     return res.json({
+  //       status: "error",
+  //       message: "Missing userId or userType"
+  //     });
+  //   }
+
+  //   const file =
+  //     req.file || (req.files?.length ? req.files[0] : null);
+
+  //   let record = await uploadAdminImages.findOne({ userId, userType });
+
+  //   if (!record) {
+  //     record = await uploadAdminImages.create({
+  //       userId,
+  //       userType,
+  //       posterImages: []
+  //     });
+  //   }
+
+  //   if (!imageId || imageId === "0") {
+  //     if (!file) {
+  //       return res.json({
+  //         status: "error",
+  //         message: "Image required"
+  //       });
+  //     }
+
+  //     const url = await uploadToS3(file);
+
+  //     const newImage = {
+  //       path: url,
+  //      // preference: preference ? Number(preference) : 0,
+  //       startDate: startDate || "",
+  //       endDate: endDate || "",
+  //       isActive: isActive === "true",
+  //       uploadedAt: new Date()
+  //     };
+
+  //     record.posterImages.push(newImage);
+  //     await record.save();
+
+  //     return res.json({
+  //       status: "success",
+  //       message: "Created",
+  //       data: record.posterImages.at(-1)
+  //     });
+  //   }
+
+  //   const image = record.posterImages.id(imageId);
+
+  //   if (!image) {
+  //     return res.json({
+  //       status: "error",
+  //       message: "Image not found"
+  //     });
+  //   }
+
+  //   if (file) {
+  //     image.path = await uploadToS3(file);
+  //   }
+
+  //   if (preference !== undefined && preference !== null)
+  //     image.preference = Number(preference);
+
+  //   if (startDate !== undefined)
+  //     image.startDate = startDate;
+
+  //   if (endDate !== undefined)
+  //     image.endDate = endDate;
+
+  //   if (isActive !== undefined)
+  //     image.isActive = isActive === "true";
+
+  //   image.uploadedAt = new Date();
+
+  //   await record.save();
+
+  //   return res.json({
+  //     status: "success",
+  //     message: "Updated",
+  //     data: image
+  //   });
+
+  // } catch (err) {
+  //   console.error(err);
+  //   return res.json({
+  //     status: "error",
+  //     message: err.message
+  //   });
+  // }
+  // };
 // exports.postImagesAdmin = async (req, res) => {
 //   try {
 //     const {
