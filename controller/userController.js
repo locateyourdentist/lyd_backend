@@ -2335,7 +2335,7 @@ exports.postImagesAdmin = async (req, res) => {
       userId,
       userType,
       imageId,
-      preference,
+     // preference,
       startDate,
       endDate,
       isActive
@@ -2375,7 +2375,7 @@ exports.postImagesAdmin = async (req, res) => {
 
       const newImage = {
         path: url,
-        preference: preference ? Number(preference) : 0,
+       // preference: preference ? Number(preference) : 0,
         startDate: startDate || "",
         endDate: endDate || "",
         isActive:
