@@ -527,7 +527,9 @@ exports.userRegister = async (req, res) => {
 
     let parsedAddress = {};
     let parsedDetails = {};
-
+const isAdmin =
+  req.body.isAdmin === true ||
+  req.body.isAdmin === "true";
     // PARSE JSON
     if (address) {
       try {
@@ -550,11 +552,6 @@ exports.userRegister = async (req, res) => {
         });
       }
     }
-
-    // =========================================================
-    // CREATE USER
-    // =========================================================
-
     if (userId == "0") {
 
       if (
@@ -569,13 +566,8 @@ exports.userRegister = async (req, res) => {
           message: "Missing fields"
         });
       }
-
-      // CHECK DUPLICATE
-      // SAME EMAIL/MOBILE ALLOWED ONLY FOR ADMIN USERS
-
       if (!req.body.isAdmin) {
-
-        const duplicateUser = await userModel.findOne({
+      const duplicateUser = await userModel.findOne({
           $or: [
             { email: email.trim() },
             { mobileNumber: mobileNumber.trim() }
@@ -590,13 +582,7 @@ exports.userRegister = async (req, res) => {
           });
         }
       }
-
-      // HASH PASSWORD
-
       const hashedPassword = await bcryptjs.hash(password, 10);
-
-      // GENERATE USER ID
-
       const counter = await userIds.findOneAndUpdate(
         { id: "userId" },
         { $inc: { userId: 1 } },
@@ -698,18 +684,17 @@ exports.userRegister = async (req, res) => {
         console.log("Mail send failed:", mailError.message);
       }
 
-      // SEND OTP
-    await sendRegistrationOtp(newUserId);
+    //await sendRegistrationOtp(newUserId);
 
       if (
         userType !== "admin" &&
         userType !== "superAdmin" &&
-        userType !== "Job Seekers"
+        userType !== "Job Seekers"&&!isAdmin
       ) {
 
         await assignFreePlanToUser(newUserId, userType);
       }
-
+//add
       return res.json({
         status: "success",
         message: "User registered successfully",
@@ -2394,17 +2379,13 @@ exports.postImagesAdmin = async (req, res) => {
         data: record.posterImages.at(-1)
       });
     }
-
-    // UPDATE
     const image = record.posterImages.id(imageId);
-
     if (!image) {
       return res.json({
         status: "error",
         message: "Image not found"
       });
     }
-
     if (file) {
       image.path = await uploadToS3(file);
     }

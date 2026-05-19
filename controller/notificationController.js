@@ -284,7 +284,7 @@ exports.createNotification = async (req, res) => {
 
       const admins = await userModel.find(
         {
-          userType: "admin",
+         // userType: "admin",
           "address.state": state
         },
         { userId: 1 }
@@ -292,8 +292,8 @@ exports.createNotification = async (req, res) => {
 
       const superAdmins = await userModel.find(
         {
-          userType: "superAdmin",
-          "address.state": state
+          userType: userType=="All"?"":userTypes,
+          //"address.state": state
         },
         { userId: 1 }
       ).lean();
