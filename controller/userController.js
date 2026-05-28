@@ -551,8 +551,7 @@ exports.userRegister = async (req, res) => {
 
       const newUserId = `LYD${counter.userId}`;
 
-      // Upload files
-      let images = [], certificates = [], logoImages = [];
+    let images = [], certificates = [], logoImages = [];
 
       if (req.files) {
         for (const file of req.files) {

@@ -34,7 +34,7 @@ router.post("/deactivate_user",auth,userController.deactivateUser)
 router.post('/create_email',userController.create_email)
 router.post('/plan_email',userController.plan_email)
 router.post('/job_email',userController.job_email)
-router.post('/uploadImages',  upload.single('posterImages'),userController.postImagesAdmin)
+router.post('/uploadImages', upload.single('posterImages'),userController.postImagesAdmin)
 router.post('/get_upload_images',userController.getUploadImages)
 router.post('/save_fcm_token',userController.saveFcmToken)
 

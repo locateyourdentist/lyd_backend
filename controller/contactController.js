@@ -370,15 +370,25 @@ exports.getContactsByReceiver = async (req, res) => {
 
     let result = contacts.map(contact => ({
       id: contact?._id?.toString(), 
-      //userId: user?.userId || "",
-      userType: user?.userType || "",
-      name: user?.details?.name || "",
-      email: user?.email || "",
-      mobileNumber: user?.mobileNumber || "",
-      orgName: user?.name || "",
-      address: user?.address
-        ? `${user.address.city}, ${user.address.district}`
+       id: contact?._id?.toString(), 
+      userId: user?.senderUserId || "",
+            userType: contact?.userType || "",
+            name: contact?.Name || "",
+      email: contact?.email || "",
+      mobileNumber: contact?.mobileNumber || "",
+      orgName: contact?.clinicName || "",
+      address: contact?.clinicAddress
+        ? `${contact.clinicAddress.state}, ${contact.clinicAddress.district},${contact.clinicAddress.district}`
         : "",
+      //userId: user?.userId || "",
+      // userType: user?.userType || "",
+      // name: user?.details?.name || "",
+      // email: user?.email || "",
+      // mobileNumber: user?.mobileNumber || "",
+      // orgName: user?.name || "",
+      // address: user?.address
+      //   ? `${user.address.city}, ${user.address.district}`
+      //   : "",
       materialDescription: contact?.materialDescription,
       contactImage: contact?.contactImage,
       createdAt: contact?.createdAt
@@ -427,19 +437,26 @@ exports.getContactsBySender = async (req, res) => {
       .find(query)
       .sort({ createdAt: -1 });
 
-    const user = await userModel.findOne({ userId: senderUserId });
+    const user = await userModel.findOne({ userId: contacts.receiverUserId });
 
     let result = contacts.map(contact => ({
       id: contact?._id?.toString(), 
-      //userId: user?.userId || "",
-            userType: user?.userType || "",
-      name: user?.details?.name || "",
-      email: user?.email || "",
-      mobileNumber: user?.mobileNumber || "",
-      orgName: user?.name || "",
-      address: user?.address
-        ? `${user.address.city}, ${user.address.district}`
+      userId: user?.receiverUserId || "",
+            userType: contact?.userType || "",
+            name: contact?.Name || "",
+      email: contact?.email || "",
+      mobileNumber: contact?.mobileNumber || "",
+      orgName: contact?.clinicName || "",
+      address: contact?.clinicAddress
+        ? `${contact.clinicAddress.state}, ${contact.clinicAddress.district},${contact.clinicAddress.district}`
         : "",
+      // name: user?.details?.name || "",
+      // email: user?.email || "",
+      // mobileNumber: user?.mobileNumber || "",
+      // orgName: user?.name || "",
+      // address: user?.address
+      //   ? `${user.address.city}, ${user.address.district}`
+      //   : "",
       materialDescription: contact?.materialDescription,
       contactImage: contact?.contactImage,
       createdAt: contact?.createdAt
