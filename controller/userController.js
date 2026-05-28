@@ -332,6 +332,7 @@ const sendRegistrationOtp = async (userId) => {
 //     return res.send({ status: "error", message: error.message });
 //   }
 // };
+
 exports.getAllUserDetails = async (req, res) => {
   try {
     const { filters = {}, search = "", userId } = req.body;
@@ -507,6 +508,7 @@ if (filters.latitude && filters.longitude) {
 };
 exports.userRegister = async (req, res) => {
   try {
+
     const {
       userId,
       name,
@@ -523,45 +525,123 @@ exports.userRegister = async (req, res) => {
       oldLogoImageUrl
     } = req.body;
 
-    let parsedAddress = address ? JSON.parse(address) : {};
-    let parsedDetails = details ? JSON.parse(details) : {};
-
-  
-    if (userId == "0") {
-
-      const duplicateUser = await userModel.findOne({
-        $or: [{ email }, { mobileNumber }],
-        isActive: true
-      });
-
-      if (duplicateUser) {
+    let parsedAddress = {};
+    let parsedDetails = {};
+const isAdmin =
+  req.body.isAdmin === true ||
+  req.body.isAdmin === "true";
+    // PARSE JSON
+    if (address) {
+      try {
+        parsedAddress = JSON.parse(address);
+      } catch (e) {
         return res.json({
           status: "error",
-          message: "User already exists"
+          message: "Address is not valid JSON"
         });
       }
+    }
 
+    if (details) {
+      try {
+        parsedDetails = JSON.parse(details);
+      } catch (e) {
+        return res.json({
+          status: "error",
+          message: "Details is not valid JSON"
+        });
+      }
+    }
+    if (userId == "0") {
+
+      if (
+        !name ||
+        !dob ||
+        !userType ||
+        !email ||
+        !mobileNumber
+      ) {
+        return res.json({
+          status: "error",
+          message: "Missing fields"
+        });
+      }
+      if (!req.body.isAdmin) {
+      const duplicateUser = await userModel.findOne({
+          $or: [
+            { email: email.trim() },
+            { mobileNumber: mobileNumber.trim() }
+          ],
+          isActive: true
+        });
+
+        if (duplicateUser) {
+          return res.json({
+            status: "error",
+            message: "User email or mobile number already exists"
+          });
+        }
+      }
       const hashedPassword = await bcryptjs.hash(password, 10);
-
       const counter = await userIds.findOneAndUpdate(
-        { id: 'userId' },
+        { id: "userId" },
         { $inc: { userId: 1 } },
         { upsert: true, new: true }
       );
 
       const newUserId = `LYD${counter.userId}`;
 
-    let images = [], certificates = [], logoImages = [];
+      // FILES
 
-      if (req.files) {
+      const images = [];
+      const certificates = [];
+      const logoImages = [];
+
+      if (req.files && req.files.length > 0) {
+
         for (const file of req.files) {
-          const url = await uploadToS3(file);
 
-          if (file.fieldname === "image") images.push(url);
-          if (file.fieldname === "certificates") certificates.push(url);
-          if (file.fieldname === "logoImage") logoImages.push(url);
+          const uploadedUrl = await uploadToS3(file);
+
+          switch (file.fieldname) {
+
+            case "image":
+              images.push(uploadedUrl);
+              break;
+
+            case "certificates":
+              certificates.push(uploadedUrl);
+              break;
+
+            case "logoImage":
+              logoImages.push(uploadedUrl);
+              break;
+          }
         }
       }
+
+      // ADDRESS
+
+      const addressUpdate = {
+        state: parsedAddress.state || "",
+        district: parsedAddress.district || "",
+        city: parsedAddress.city || "",
+        area: parsedAddress.area || "",
+        pincode: parsedAddress.pincode || "",
+      };
+
+      if (parsedAddress.latitude && parsedAddress.longitude) {
+
+        addressUpdate.geoLocation = {
+          type: "Point",
+          coordinates: [
+            Number(parsedAddress.longitude),
+            Number(parsedAddress.latitude)
+          ]
+        };
+      }
+
+      // CREATE USER
 
       const newUser = new userModel({
         userId: newUserId,
@@ -569,67 +649,147 @@ exports.userRegister = async (req, res) => {
         dob,
         password: hashedPassword,
         userType,
-        email,
-        mobileNumber,
-        location,
-        address: parsedAddress,
+        email: email.trim(),
+        mobileNumber: mobileNumber.trim(),
+        location: location || "",
+        address: addressUpdate,
         details: parsedDetails,
         image: images,
-        certificates,
+        certificates: certificates,
         logoImage: logoImages,
+
         adminDetails: {
-          isAdmin: false,
-          adminId: newUserId
+          isAdmin: req.body.isAdmin || false,
+          adminId: req.body.isAdmin
+              ? newUserId
+              : (req.body.adminId || ""),
+          branch: []
         }
       });
+    // SAVE USER
+     await newUser.save();
+     // SEND EMAIL
+   try {
+   const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
+          {
+            userId: newUserId,
+            subject: "New Registration",
+            title: "new",
+            message: "new user added successfully"
+          }
+        );
+       console.log("Mail response:", response.data);
+  } catch (mailError) {
 
-      await newUser.save();
+        console.log("Mail send failed:", mailError.message);
+      }
 
+    //await sendRegistrationOtp(newUserId);
+
+      if (
+        userType !== "admin" &&
+        userType !== "superAdmin" &&
+        userType !== "Job Seekers"&&!isAdmin
+      ) {
+
+        await assignFreePlanToUser(newUserId, userType);
+      }
+//add
       return res.json({
         status: "success",
-        message: "User created",
+        message: "User registered successfully",
         data: newUser
       });
     }
 
-
+    // UPDATE USER
     else {
 
       const existingUser = await userModel.findOne({ userId });
 
       if (!existingUser) {
+
         return res.json({
           status: "error",
           message: "User not found"
         });
       }
 
-      let profileImages = oldImageUrl ? JSON.parse(oldImageUrl) : [];
-      let certificatesArr = oldCertificatesUrl ? JSON.parse(oldCertificatesUrl) : [];
-      let logoImagesArr = oldLogoImageUrl ? JSON.parse(oldLogoImageUrl) : [];
+      let parsedOldImages = [];
+      let parsedOldCertificates = [];
+      let parsedOldLogoImages = [];
 
-      if (req.files) {
-        for (const file of req.files) {
-          const url = await uploadToS3(file);
+      if (oldImageUrl)
+        parsedOldImages = JSON.parse(oldImageUrl);
 
-          if (file.fieldname === "image") profileImages.push(url);
-          if (file.fieldname === "certificates") certificatesArr.push(url);
-          if (file.fieldname === "logoImage") logoImagesArr.push(url);
+      if (oldCertificatesUrl)
+        parsedOldCertificates = JSON.parse(oldCertificatesUrl);
+
+      if (oldLogoImageUrl)
+        parsedOldLogoImages = JSON.parse(oldLogoImageUrl);
+
+      let profileImages = parsedOldImages || [];
+      let certificatesArr = parsedOldCertificates || [];
+      let logoImagesArr = parsedOldLogoImages || [];
+      if (req.files && req.files.length > 0) {
+         for (const file of req.files) {
+
+          const uploadedUrl = await uploadToS3(file);
+
+          switch (file.fieldname) {
+
+            case "image":
+              profileImages.push(uploadedUrl);
+              break;
+
+            case "certificates":
+              certificatesArr.push(uploadedUrl);
+              break;
+
+            case "logoImage":
+              logoImagesArr.push(uploadedUrl);
+              break;
+          }
         }
+      }
+
+      profileImages = [...new Set(profileImages)];
+      certificatesArr = [...new Set(certificatesArr)];
+      logoImagesArr = [...new Set(logoImagesArr)];
+
+      // UPDATE ADDRESS
+
+      const addressUpdate = {
+        state: parsedAddress.state || "",
+        district: parsedAddress.district || "",
+        city: parsedAddress.city || "",
+        area: parsedAddress.area || "",
+        pincode: parsedAddress.pincode || "",
+      };
+
+      if (parsedAddress.latitude && parsedAddress.longitude) {
+
+        addressUpdate.geoLocation = {
+          type: "Point",
+          coordinates: [
+            Number(parsedAddress.longitude),
+            Number(parsedAddress.latitude)
+          ]
+        };
       }
 
       const updateFields = {
         name,
         dob,
-        email,
-        mobileNumber,
-        location,
         userType,
-        address: parsedAddress,
+        email: email?.trim(),
+        mobileNumber: mobileNumber?.trim(),
+        location,
+        address: addressUpdate,
         details: parsedDetails,
-        image: [...new Set(profileImages)],
-        certificates: [...new Set(certificatesArr)],
-        logoImage: [...new Set(logoImagesArr)],
+        image: profileImages,
+        certificates: certificatesArr,
+        logoImage: logoImagesArr,
         updatedDate: Date.now()
       };
 
@@ -641,16 +801,168 @@ exports.userRegister = async (req, res) => {
 
       return res.json({
         status: "success",
-        message: "User updated",
+        message: "User updated successfully",
         data: updatedUser
       });
     }
 
   } catch (error) {
-    console.error(error);
-    res.json({ status: "error", message: error.message });
+
+    console.error("REGISTER ERROR:", error);
+
+    return res.json({
+      status: "error",
+      message: error.message
+    });
   }
-};
+};//neww
+// exports.userRegister = async (req, res) => {
+//   try {
+//     const {
+//       userId,
+//       name,
+//       dob,
+//       password,
+//       userType,
+//       email,
+//       mobileNumber,
+//       address,
+//       details,
+//       location,
+//       oldImageUrl,
+//       oldCertificatesUrl,
+//       oldLogoImageUrl
+//     } = req.body;
+
+//     let parsedAddress = address ? JSON.parse(address) : {};
+//     let parsedDetails = details ? JSON.parse(details) : {};
+
+  
+//     if (userId == "0") {
+
+//       const duplicateUser = await userModel.findOne({
+//         $or: [{ email }, { mobileNumber }],
+//         isActive: true
+//       });
+
+//       if (duplicateUser) {
+//         return res.json({
+//           status: "error",
+//           message: "User already exists"
+//         });
+//       }
+
+//       const hashedPassword = await bcryptjs.hash(password, 10);
+
+//       const counter = await userIds.findOneAndUpdate(
+//         { id: 'userId' },
+//         { $inc: { userId: 1 } },
+//         { upsert: true, new: true }
+//       );
+
+//       const newUserId = `LYD${counter.userId}`;
+
+    
+//       let images = [], certificates = [], logoImages = [];
+
+//       if (req.files) {
+//         for (const file of req.files) {
+//           const url = await uploadToS3(file);
+
+//           if (file.fieldname === "image") images.push(url);
+//           if (file.fieldname === "certificates") certificates.push(url);
+//           if (file.fieldname === "logoImage") logoImages.push(url);
+//         }
+//       }
+
+//       const newUser = new userModel({
+//         userId: newUserId,
+//         name,
+//         dob,
+//         password: hashedPassword,
+//         userType,
+//         email,
+//         mobileNumber,
+//         location,
+//         address: parsedAddress,
+//         details: parsedDetails,
+//         image: images,
+//         certificates,
+//         logoImage: logoImages,
+//         adminDetails: {
+//           isAdmin: false,
+//           adminId: newUserId
+//         }
+//       });
+
+//       await newUser.save();
+
+//       return res.json({
+//         status: "success",
+//         message: "User created",
+//         data: newUser
+//       });
+//     }
+
+
+//     else {
+
+//       const existingUser = await userModel.findOne({ userId });
+
+//       if (!existingUser) {
+//         return res.json({
+//           status: "error",
+//           message: "User not found"
+//         });
+//       }
+
+//       let profileImages = oldImageUrl ? JSON.parse(oldImageUrl) : [];
+//       let certificatesArr = oldCertificatesUrl ? JSON.parse(oldCertificatesUrl) : [];
+//       let logoImagesArr = oldLogoImageUrl ? JSON.parse(oldLogoImageUrl) : [];
+
+//       if (req.files) {
+//         for (const file of req.files) {
+//           const url = await uploadToS3(file);
+
+//           if (file.fieldname === "image") profileImages.push(url);
+//           if (file.fieldname === "certificates") certificatesArr.push(url);
+//           if (file.fieldname === "logoImage") logoImagesArr.push(url);
+//         }
+//       }
+
+//       const updateFields = {
+//         name,
+//         dob,
+//         email,
+//         mobileNumber,
+//         location,
+//         userType,
+//         address: parsedAddress,
+//         details: parsedDetails,
+//         image: [...new Set(profileImages)],
+//         certificates: [...new Set(certificatesArr)],
+//         logoImage: [...new Set(logoImagesArr)],
+//         updatedDate: Date.now()
+//       };
+
+//       const updatedUser = await userModel.findOneAndUpdate(
+//         { userId },
+//         { $set: updateFields },
+//         { new: true }
+//       );
+
+//       return res.json({
+//         status: "success",
+//         message: "User updated",
+//         data: updatedUser
+//       });
+//     }
+
+//   } catch (error) {
+//     console.error(error);
+//     res.json({ status: "error", message: error.message });
+//   }
+// };
 //   exports.userRegister = async (req, res) => {
 //   try {
 //   const { userId, name,dob,description, password, userType, email, mobileNumber, address, details,location,oldImageUrl, oldCertificatesUrl,
@@ -686,11 +998,11 @@ exports.userRegister = async (req, res) => {
 //     { email: email },
 //     { mobileNumber: mobileNumber }
 //     ],
-//     "adminDetails.isAdmin": "false",
+//     "adminDetails.isAdmin": false,
 //     isActive: true
 //     });
 
-
+// ///
 //   if (duplicateUser) {
 //     return res.json({
 //       status: "error",
@@ -754,7 +1066,6 @@ exports.userRegister = async (req, res) => {
 //   pincode: parsedAddress.pincode || "",
 // };
 
-// // Only add geoLocation if both latitude and longitude exist
 // if (parsedAddress.latitude && parsedAddress.longitude) {
 //   addressUpdate.geoLocation = {
 //     type: 'Point',
@@ -913,7 +1224,7 @@ exports.userRegister = async (req, res) => {
 //     res.json({ status: "error", message: error.message });
 //   }
 // };
-
+//watsapp
 const PHONE_NUMBER_ID = `${process.env.PHONE_NUMBER_ID}`;;
 const TOKEN = `${process.env.WHATSAPP_ACCESS_TOKEN}`;
 const API_URL = `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`;
@@ -998,10 +1309,8 @@ const assignFreePlanToUser = async (newUserId, userType) => {
     const planName = plan.planName;
     const price = plan.price;
     const duration = Number(plan.duration); 
-
-    // 2. Calculate dates
     const { startDate, endDate } = calculatePlanDates(duration);
-        const user = await userModel.findOne({ userId:newUserId,isActive:true});
+    const user = await userModel.findOne({ userId:newUserId,isActive:true});
 
     // const token = jwt.sign(
     //   { userId: user.userId, userName: user.name, userType: user.userType },
@@ -2005,14 +2314,13 @@ exports.job_email = async (req, res) => {
     return res.send({ status: "error", message: "Internal Server Error" });
   }
 };
- 
-  exports.postImagesAdmin = async (req, res) => {
+exports.postImagesAdmin = async (req, res) => {
   try {
     const {
       userId,
       userType,
       imageId,
-      preference,
+     // preference,
       startDate,
       endDate,
       isActive
@@ -2038,7 +2346,9 @@ exports.job_email = async (req, res) => {
       });
     }
 
-    if (!imageId || imageId === "0") {
+    // CREATE
+    if (!imageId || imageId === "0" || imageId === "") {
+
       if (!file) {
         return res.json({
           status: "error",
@@ -2050,14 +2360,17 @@ exports.job_email = async (req, res) => {
 
       const newImage = {
         path: url,
-        preference: preference ? Number(preference) : 0,
+       // preference: preference ? Number(preference) : 0,
         startDate: startDate || "",
         endDate: endDate || "",
-        isActive: isActive === "true",
+        isActive:
+          isActive === true ||
+          isActive === "true",
         uploadedAt: new Date()
       };
 
       record.posterImages.push(newImage);
+
       await record.save();
 
       return res.json({
@@ -2066,31 +2379,34 @@ exports.job_email = async (req, res) => {
         data: record.posterImages.at(-1)
       });
     }
-
     const image = record.posterImages.id(imageId);
-
     if (!image) {
       return res.json({
         status: "error",
         message: "Image not found"
       });
     }
-
     if (file) {
       image.path = await uploadToS3(file);
     }
 
-    if (preference !== undefined && preference !== null)
-      image.preference = Number(preference);
+    // if (preference !== undefined) {
+    //   image.preference = Number(preference);
+    // }
 
-    if (startDate !== undefined)
+    if (startDate !== undefined) {
       image.startDate = startDate;
+    }
 
-    if (endDate !== undefined)
+    if (endDate !== undefined) {
       image.endDate = endDate;
+    }
 
-    if (isActive !== undefined)
-      image.isActive = isActive === "true";
+    if (isActive !== undefined) {
+      image.isActive =
+        isActive === true ||
+        isActive === "true";
+    }
 
     image.uploadedAt = new Date();
 
@@ -2104,12 +2420,118 @@ exports.job_email = async (req, res) => {
 
   } catch (err) {
     console.error(err);
+
     return res.json({
       status: "error",
       message: err.message
     });
   }
-  };
+};
+ 
+  // exports.postImagesAdmin = async (req, res) => {
+  // try {
+  //   const {
+  //     userId,
+  //     userType,
+  //     imageId,
+  //     preference,
+  //     startDate,
+  //     endDate,
+  //     isActive
+  //   } = req.body;
+
+  //   if (!userId || !userType) {
+  //     return res.json({
+  //       status: "error",
+  //       message: "Missing userId or userType"
+  //     });
+  //   }
+
+  //   const file =
+  //     req.file || (req.files?.length ? req.files[0] : null);
+
+  //   let record = await uploadAdminImages.findOne({ userId, userType });
+
+  //   if (!record) {
+  //     record = await uploadAdminImages.create({
+  //       userId,
+  //       userType,
+  //       posterImages: []
+  //     });
+  //   }
+
+  //   if (!imageId || imageId === "0") {
+  //     if (!file) {
+  //       return res.json({
+  //         status: "error",
+  //         message: "Image required"
+  //       });
+  //     }
+
+  //     const url = await uploadToS3(file);
+
+  //     const newImage = {
+  //       path: url,
+  //      // preference: preference ? Number(preference) : 0,
+  //       startDate: startDate || "",
+  //       endDate: endDate || "",
+  //       isActive: isActive === "true",
+  //       uploadedAt: new Date()
+  //     };
+
+  //     record.posterImages.push(newImage);
+  //     await record.save();
+
+  //     return res.json({
+  //       status: "success",
+  //       message: "Created",
+  //       data: record.posterImages.at(-1)
+  //     });
+  //   }
+
+  //   const image = record.posterImages.id(imageId);
+
+  //   if (!image) {
+  //     return res.json({
+  //       status: "error",
+  //       message: "Image not found"
+  //     });
+  //   }
+
+  //   if (file) {
+  //     image.path = await uploadToS3(file);
+  //   }
+
+  //   if (preference !== undefined && preference !== null)
+  //     image.preference = Number(preference);
+
+  //   if (startDate !== undefined)
+  //     image.startDate = startDate;
+
+  //   if (endDate !== undefined)
+  //     image.endDate = endDate;
+
+  //   if (isActive !== undefined)
+  //     image.isActive = isActive === "true";
+
+  //   image.uploadedAt = new Date();
+
+  //   await record.save();
+
+  //   return res.json({
+  //     status: "success",
+  //     message: "Updated",
+  //     data: image
+  //   });
+
+  // } catch (err) {
+  //   console.error(err);
+  //   return res.json({
+  //     status: "error",
+  //     message: err.message
+  //   });
+  // }
+  // };
 // exports.postImagesAdmin = async (req, res) => {
 //   try {
 //     const {
@@ -2493,63 +2915,248 @@ const expirePosterImagesIfNeeded = async () => {
     console.error("Poster image expiry check failed:", error);
   }
 };
-
 exports.getUploadImages = async (req, res) => {
+
   const { userType, userId } = req.body;
 
   try {
+
     const today = new Date();
 
-    const matchStage = { userType: { $regex: `^${userType}$`, $options: "i" } };
-    if (userId) matchStage.userId = userId;
+    const matchStage = {
+      userType: {
+        $regex: `^${userType}$`,
+        $options: "i"
+      }
+    };
+
+    if (userId) {
+      matchStage.userId = userId;
+    }
 
     const records = await uploadAdminImages.find(matchStage);
 
-    const activeImages = [];
+    const images = [];
+
     records.forEach(record => {
+
       record.posterImages.forEach(img => {
-        if (img.endDate && img.endDate !== "null") {
-          const [day, month, year] = img.endDate.split("-").map(Number);
-          const end = new Date(year, month - 1, day);
-          if (end >= today) {
-            activeImages.push({
-              _id: img._id,
-              path: img.path,
-              startDate: img.startDate,
-              endDate: img.endDate,
-              userId: record.userId,
-              userType: record.userType,
-              isActive: true
-            });
+
+        let isExpired = false;
+
+        // CHECK EXPIRY ONLY
+        if (
+          img.endDate &&
+          img.endDate !== "" &&
+          img.endDate !== "null"
+        ) {
+
+          const [day, month, year] =
+              img.endDate.split("-").map(Number);
+
+          const endDate =
+              new Date(year, month - 1, day);
+
+          if (endDate < today) {
+            isExpired = true;
           }
-        } else if (!img.endDate || img.endDate === "null") {
-          activeImages.push({
-            _id: img._id,
-            path: img.path,
-            startDate: img.startDate,
-            endDate: img.endDate,
-            userId: record.userId,
-            userType: record.userType,
-            isActive: true
-          });
         }
+
+        // SKIP ONLY EXPIRED
+        if (isExpired) return;
+
+        // RETURN ALL NON-EXPIRED IMAGES
+        images.push({
+
+          _id: img._id,
+
+          path: img.path,
+
+          startDate: img.startDate || "",
+
+          endDate: img.endDate || "",
+
+          userId: record.userId,
+
+          userType: record.userType,
+
+          // IMPORTANT
+          isActive: img.isActive ?? true
+        });
       });
     });
 
     return res.send({
+
       status: "success",
-      message: activeImages.length ? "Images fetched successfully" : "No images found",
-      data: activeImages
+
+      message:
+          images.length > 0
+              ? "Images fetched successfully"
+              : "No images found",
+
+      data: images
     });
 
   } catch (error) {
+
     console.error(error);
-    return res.status(500).send({
+
+    return res.send({
+
       status: "error",
+
       message: error.message
     });
   }
 };
+// exports.getUploadImages = async (req, res) => {
+
+//   const { userType, userId } = req.body;
+
+//   try {
+
+//     const today = new Date();
+
+//     const matchStage = {
+//       userType: {
+//         $regex: `^${userType}$`,
+//         $options: "i"
+//       }
+//     };
+
+//     if (userId) {
+//       matchStage.userId = userId;
+//     }
+
+//     const records = await uploadAdminImages.find(matchStage);
+
+//     const images = [];
+
+//     records.forEach(record => {
+
+//       record.posterImages.forEach(img => {
+
+//         let isExpired = false;
+
+//         // CHECK EXPIRY ONLY
+//         if (
+//           img.endDate &&
+//           img.endDate !== "" &&
+//           img.endDate !== "null"
+//         ) {
+
+//           const [day, month, year] =
+//               img.endDate.split("-").map(Number);
+
+//           const endDate =
+//               new Date(year, month - 1, day);
+
+//           if (endDate < today) {
+//             isExpired = true;
+//           }
+//         }
+
+//         // SKIP ONLY EXPIRED
+//         if (isExpired) return;
+
+//         // RETURN ALL NON-EXPIRED IMAGES
+//         images.push({
+
+//           _id: img._id,
+
+//           path: img.path,
+
+//           startDate: img.startDate || "",
+
+//           endDate: img.endDate || "",
+
+//           userId: record.userId,
+
+//           userType: record.userType,
+
+//           // IMPORTANT
+//           isActive: img.isActive ?? true
+//         });
+//       });
+//     });
+
+//     return res.send({
+
+//       status: "success",
+
+//       message:
+//           images.length > 0
+//               ? "Images fetched successfully"
+//               : "No images found",
+
+//       data: images
+//     });
+
+//   } catch (error) {
+
+//     console.error(error);
+//      return res.send({
+//       status: "error",message: error.message
+//     });
+//   }
+// };
+// exports.getUploadImages = async (req, res) => {
+//   const { userType, userId } = req.body;
+
+//   try {
+//     const today = new Date();
+
+//     const matchStage = { userType: { $regex: `^${userType}$`, $options: "i" } };
+//     if (userId) matchStage.userId = userId;
+
+//     const records = await uploadAdminImages.find(matchStage);
+
+//     const activeImages = [];
+//     records.forEach(record => {
+//       record.posterImages.forEach(img => {
+//         if (img.endDate && img.endDate !== "null") {
+//           const [day, month, year] = img.endDate.split("-").map(Number);
+//           const end = new Date(year, month - 1, day);
+//           if (end >= today) {
+//             activeImages.push({
+//               _id: img._id,
+//               path: img.path,
+//               startDate: img.startDate,
+//               endDate: img.endDate,
+//               userId: record.userId,
+//               userType: record.userType,
+//               isActive: true
+//             });
+//           }
+//         } else if (!img.endDate || img.endDate === "null") {
+//           activeImages.push({
+//             _id: img._id,
+//             path: img.path,
+//             startDate: img.startDate,
+//             endDate: img.endDate,
+//             userId: record.userId,
+//             userType: record.userType,
+//             isActive: true
+//           });
+//         }
+//       });
+//     });
+
+//     return res.send({
+//       status: "success",
+//       message: activeImages.length ? "Images fetched successfully" : "No images found",
+//       data: activeImages
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).send({
+//       status: "error",
+//       message: error.message
+//     });
+//   }
+// };
 // exports.getUploadImages = async (req, res) => {
 //   const { userType, userId } = req.body;
 
