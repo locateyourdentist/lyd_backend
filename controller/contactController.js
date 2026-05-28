@@ -371,7 +371,7 @@ exports.getContactsByReceiver = async (req, res) => {
     let result = contacts.map(contact => ({
       id: contact?._id?.toString(), 
        id: contact?._id?.toString(), 
-      userId: user?.senderUserId || "",
+      userId: contact?.senderUserId || "",
             userType: contact?.userType || "",
             name: contact?.Name || "",
       email: contact?.email || "",
@@ -441,7 +441,7 @@ exports.getContactsBySender = async (req, res) => {
 
     let result = contacts.map(contact => ({
       id: contact?._id?.toString(), 
-      userId: user?.receiverUserId || "",
+      userId: contact?.receiverUserId || "",
             userType: contact?.userType || "",
             name: contact?.Name || "",
       email: contact?.email || "",
