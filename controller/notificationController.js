@@ -292,7 +292,7 @@ exports.createNotification = async (req, res) => {
 
       const superAdmins = await userModel.find(
         {
-          userType: userType=="All"?"":userTypes,
+          userType: userType=="All"?"":userType,
           //"address.state": state
         },
         { userId: 1 }

@@ -36,6 +36,7 @@ const webinarModel= new mongoose.Schema({
      type:String,
     },
     details:{
+                    type:Object
     },
     //  state:{
     //     type:String

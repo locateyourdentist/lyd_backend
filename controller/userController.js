@@ -566,8 +566,8 @@ const isAdmin =
           message: "Missing fields"
         });
       }
-      if (!req.body.isAdmin) {
-      const duplicateUser = await userModel.findOne({
+    if (!isAdmin) {
+        const duplicateUser = await userModel.findOne({
           $or: [
             { email: email.trim() },
             { mobileNumber: mobileNumber.trim() }
@@ -1632,7 +1632,7 @@ console.log(`ie${urls}`)
       year: new Date().getFullYear()
     });
      await transporter.sendMail({
-      from: '"LYD" <developer.catchytechnologies@gmail.com>',
+      from: `"LYD" <${process.env.nodemail_username}>`,
       to: mail,
       subject:"LYD OTP Verification Mail",
       html: htmlContent
