@@ -244,7 +244,6 @@ try {
   if (typeof webinarDescription === "string") {
     webinarDescriptionObj = JSON.parse(webinarDescription);
 
-    //  FIX: if it's wrapped like [{ insert: "...." }] (wrong case)
     if (
       webinarDescriptionObj.length === 1 &&
       typeof webinarDescriptionObj[0].insert === "string" &&
