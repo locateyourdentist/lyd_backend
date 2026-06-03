@@ -2288,7 +2288,7 @@ exports.job_email = async (req, res) => {
       await transporter.sendMail({
         from: `"LYD App" <${process.env.nodemail_username}>`,
         to: adminEmails,
-        subject: `Admin Alert: ${subject}`,
+        subject: `Job Alert: ${subject}`,
         html: adminHtml
       });
       

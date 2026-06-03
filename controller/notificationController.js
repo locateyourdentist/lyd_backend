@@ -181,10 +181,12 @@ exports.createNotification = async (req, res) => {
     // IMAGE
     let notificationImage = "";
 
-    if (req.file) {
-      notificationImage = await uploadToS3(req.file);
-    }
+   if (req.file) {
+  notificationImage = await uploadToS3(req.file);
 
+  console.log("S3 URL:", notificationImage);
+}
+console.log("Uploaded file:", req.file);
     const sendPushNotification = async (
       targetUserId,
       title,
@@ -279,8 +281,7 @@ exports.createNotification = async (req, res) => {
     };
     if (
       userType !== "admin" &&
-      userType !== "superAdmin"
-    ) {
+     userType !== "superAdmin" ) {
 
       const admins = await userModel.find(
         {
@@ -358,7 +359,7 @@ exports.createNotification = async (req, res) => {
 
       return res.send({
         status: "success",
-        message: `Notification sent to ${receivers.length} admins`,
+        message: `Notification sent to ${receivers.length} users`,
       });
     }
     else {
