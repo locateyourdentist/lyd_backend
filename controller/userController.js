@@ -1743,7 +1743,7 @@ return res.json({status:"error",message:error.message})
 }
 
   exports.deactivateUser=async(req,res)=>{
-   const{userId,isActive}=req.body;
+   const{userId,isActive}=req.query;
     try{
        const deactivateService= await userModel.find({userId:userId},)
        if(deactivateService.length<0){

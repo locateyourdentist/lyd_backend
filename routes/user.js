@@ -30,7 +30,7 @@ router.post('/verify_password',userController.verifyOtp)
 
 router.post('/get_user_byId',userController.getUserbyId)
 router.post("/upload_profileImage",upload.single('profileImages'),userController.uploadProfileImage)
-router.post("/deactivate_user",userController.deactivateUser)
+router.get("/deactivate_user",userController.deactivateUser)
 router.post('/create_email',userController.create_email)
 router.post('/plan_email',userController.plan_email)
 router.post('/job_email',userController.job_email)
