@@ -1446,12 +1446,13 @@ exports.verifyRegistrationOtp = async (req, res) => {
    exports.loginUser = async (req, res) => {
     try {
     const { email, password } = req.body;
-    const user = await userModel.findOne({ email :email,isActive:true,});
-    //let user = await userModel.findOne({ email: email, isActive: true, "adminDetails.isAdmin": true });
+   const user = await userModel.findOne({email: new RegExp(`^${email.trim()}$`, "i"),isActive:true,});
+   // let user = await userModel.findOne({ email: email, isActive: true, "adminDetails.isAdmin": true });
     let userDetails;
     //if(!user){
          //userDetails = await userModel.findOne({ email: email, isActive: true,});
-    userDetails = await userModel.findOne( { email: email, isActive: true }, { sort: { createdDate: 1 } });
+    userDetails = await userModel.findOne( {   email: new RegExp(`^${email.trim()}$`, "i"),
+ isActive: true }, { sort: { createdDate: 1 } });
 
   //}
     if (!userDetails) return res.json({ status: "error", message: 'User does not exist' });

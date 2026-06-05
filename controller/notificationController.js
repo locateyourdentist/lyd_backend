@@ -144,303 +144,900 @@ if (!firebaseAdmin.apps.length) {
     credential: firebaseAdmin.credential.cert(serviceAccount),
   });
 }
+// exports.createNotification = async (req, res) => {
+//   try {
+//   const {
+//       userId,
+//       userType,
+//       title,
+//       message,
+//       state,
+//       district,
+//       city,
+//       area
+//     } = req.body;
+
+//     if (!userId || !userType || !title || !message) {
+//       return res.send({
+//         status: "error",
+//         message: "Missing fields"
+//       });
+//     }
+
+//     // CHECK USER
+//     const sender = await userModel.findOne(
+//       { userId },
+//       { address: 1 }
+//     ).lean();
+
+//     if (!sender) {
+//       return res.send({
+//         status: "error",
+//         message: "No user found"
+//       });
+//     }
+
+//     // IMAGE
+//     let notificationImage = "";
+
+//    if (req.file) {
+//   notificationImage = await uploadToS3(req.file);
+
+//   console.log("S3 URL:", notificationImage);
+// }
+// console.log("Uploaded file:", req.file);
+//     const sendPushNotification = async (
+//       targetUserId,
+//       title,
+//       message,
+//       notificationImage
+//     ) => {
+
+//       const tokens = await fcmModel.find(
+//         { userId: targetUserId },
+//         { fcmToken: 1, _id: 0 }
+//       ).lean();
+
+//       if (!tokens.length) return;
+
+//       for (const t of tokens) {
+
+//         const payload = {
+//           token: t.fcmToken,
+
+//           notification: {
+//             title: title,
+//             body: message,
+//           },
+
+//           android: {
+//             priority: "high",
+//             notification: {
+//               title: title,
+//               body: message,
+//               sound: "default",
+//               channelId: "high_importance_channel",
+
+//               // IMPORTANT
+//               imageUrl: notificationImage || undefined,
+//             },
+//           },
+
+//           apns: {
+//             payload: {
+//               aps: {
+//                 "mutable-content": 1,
+//                 sound: "default",
+//               },
+//             },
+
+//             fcm_options: {
+//               image: notificationImage || undefined,
+//             },
+//           },
+
+//           data: {
+//             title: title,
+//             body: message,
+//             image: notificationImage || "",
+//             click_action: "FLUTTER_NOTIFICATION_CLICK",
+//             screen: "home",
+//           },
+//         };
+
+//         console.log(
+//           "FCM PAYLOAD:",
+//           JSON.stringify(payload, null, 2)
+//         );
+
+//         try {
+
+//           await firebaseAdmin.messaging().send(payload);
+
+//           console.log(
+//             `Notification sent to ${targetUserId}`
+//           );
+
+//         } catch (err) {
+
+//           console.error(
+//             "FCM ERROR:",
+//             err.message
+//           );
+
+//           // REMOVE INVALID TOKEN
+//           if (
+//             err.code ===
+//             "messaging/registration-token-not-registered"
+//           ) {
+
+//             await fcmModel.deleteOne({
+//               fcmToken: t.fcmToken
+//             });
+//           }
+//         }
+//       }
+//     };
+//     if (
+//       userType !== "admin" &&
+//      userType !== "superAdmin" ) {
+
+//       const admins = await userModel.find(
+//         {
+//          userType: "admin",
+//           "address.state": state
+//         },
+//         { userId: 1 }
+//       ).lean();
+
+//       // const superAdmins = await userModel.find(
+//       //   {
+//       //     userType: userType=="All"?"":userType,
+//       //     "address.state": state
+//       //   },
+//       //   { userId: 1 }
+//       // ).lean();
+
+//       const superAdmins = await userModel.find(
+//         {
+//           userType: userType=="superAdmin",
+//         },
+//         { userId: 1 }
+//       ).lean();
+//       const receiverMap = new Map();
+
+//       [...admins, ...superAdmins].forEach((u) => {
+//         receiverMap.set(u.userId, u);
+//       });
+
+//       const receivers = [...receiverMap.values()];
+
+//       if (!receivers.length) {
+//         return res.send({
+//           status: "error",
+//           message: "No admin found"
+//         });
+//       }
+//       for (const receiver of receivers) {
+//         await notificationModel.create({
+//           userId: receiver.userId,
+//           userType,
+//           notificationImage,
+//           title,
+//           message,
+//           state,
+//           district,
+//           city,
+//           area,
+//           read: false,
+//           isActive: true,
+//         });
+
+//         await sendPushNotification(
+//           receiver.userId,
+//           title,
+//           message,
+//           notificationImage
+//         );
+//       }
+//       await notificationModel.create({
+//         userId,
+//         userType,
+//         notificationImage,
+//         title,
+//         message,
+//         state,
+//         district,
+//         city,
+//         area,
+//         read: false,
+//         isActive: true,
+//       });
+
+//       // SEND TO SENDER ALSO
+//       await sendPushNotification(
+//         userId,
+//         title,
+//         message,
+//         notificationImage
+//       );
+
+//       return res.send({
+//         status: "success",
+//         message: `Notification sent to ${receivers.length} users`,
+//       });
+//     }
+//     else {
+
+//       const query = {};
+
+//       if (userType && userType !== "All") {
+//         query.userType = userType;
+//       }
+//      if (userId && userId !== "") {
+//         query.userId = userId;
+//       }
+//       if (state) {
+//         query["address.state"] = state;
+//       }
+
+//       if (district) {
+//         query["address.district"] = district;
+//       }
+
+//       if (city) {
+//         query["address.city"] = city;
+//       }
+
+//       if (area) {
+//         query["address.area"] = area;
+//       }
+
+//       const users = await userModel.find(
+//         query,
+//         { userId: 1 }
+//       ).lean();
+
+//       if (!users.length) {
+//         return res.send({
+//           status: "error",
+//           message: "No users found"
+//         });
+//       }
+
+//       for (const receiver of users) {
+
+//         await notificationModel.create({
+//           userId: receiver.userId,
+//           userType,
+//           notificationImage,
+//           title,
+//           message,
+//           state,
+//           district,
+//           city,
+//           area,
+//           read: false,
+//           isActive: true,
+//         });
+
+//         await sendPushNotification(
+//           receiver.userId,
+//           title,
+//           message,
+//           notificationImage
+//         );
+//       }
+
+//       return res.send({
+//         status: "success",
+//         message: `Notification sent to ${users.length} users`,
+//       });
+//     }
+
+//   } catch (error) {
+
+//     console.error(
+//       "NOTIFICATION ERROR:",
+//       error
+//     );
+
+//     return res.send({
+//       status: "error",
+//       message: error.message
+//     });
+//   }
+// };
 exports.createNotification = async (req, res) => {
-  try {
+try {
+const {
+userId,
+userType,
+isAdmin,
+title,
+message,
+state,
+district,
+city,
+area
+} = req.body;
 
-    const {
-      userId,
-      userType,
-      title,
-      message,
-      state,
-      district,
-      city,
-      area
-    } = req.body;
 
-    if (!userId || !userType || !title || !message) {
-      return res.send({
-        status: "error",
-        message: "Missing fields"
-      });
-    }
+if (!userType || !title || !message) {
+  return res.send({
+    status: "error",
+    message: "Missing fields"
+  });
+}
 
-    // CHECK USER
-    const sender = await userModel.findOne(
-      { userId },
-      { address: 1 }
-    ).lean();
+let notificationImage = "";
 
-    if (!sender) {
-      return res.send({
-        status: "error",
-        message: "No user found"
-      });
-    }
-
-    // IMAGE
-    let notificationImage = "";
-
-   if (req.file) {
+if (req.file) {
   notificationImage = await uploadToS3(req.file);
-
   console.log("S3 URL:", notificationImage);
 }
-console.log("Uploaded file:", req.file);
-    const sendPushNotification = async (
-      targetUserId,
-      title,
-      message,
-      notificationImage
-    ) => {
 
-      const tokens = await fcmModel.find(
-        { userId: targetUserId },
-        { fcmToken: 1, _id: 0 }
-      ).lean();
+const sendPushNotification = async (
+  targetUserId,
+  title,
+  message,
+  notificationImage
+) => {
+  const tokens = await fcmModel.find(
+    { userId: targetUserId },
+    { fcmToken: 1, _id: 0 }
+  ).lean();
 
-      if (!tokens.length) return;
+  if (!tokens.length) return;
 
-      for (const t of tokens) {
+  for (const t of tokens) {
+    const payload = {
+      token: t.fcmToken,
 
-        const payload = {
-          token: t.fcmToken,
+      notification: {
+        title,
+        body: message,
+      },
 
-          notification: {
-            title: title,
-            body: message,
+      android: {
+        priority: "high",
+        notification: {
+          title,
+          body: message,
+          sound: "default",
+          channelId: "high_importance_channel",
+          imageUrl: notificationImage || undefined,
+        },
+      },
+
+      apns: {
+        payload: {
+          aps: {
+            "mutable-content": 1,
+            sound: "default",
           },
+        },
+        fcm_options: {
+          image: notificationImage || undefined,
+        },
+      },
 
-          android: {
-            priority: "high",
-            notification: {
-              title: title,
-              body: message,
-              sound: "default",
-              channelId: "high_importance_channel",
-
-              // IMPORTANT
-              imageUrl: notificationImage || undefined,
-            },
-          },
-
-          apns: {
-            payload: {
-              aps: {
-                "mutable-content": 1,
-                sound: "default",
-              },
-            },
-
-            fcm_options: {
-              image: notificationImage || undefined,
-            },
-          },
-
-          data: {
-            title: title,
-            body: message,
-            image: notificationImage || "",
-            click_action: "FLUTTER_NOTIFICATION_CLICK",
-            screen: "home",
-          },
-        };
-
-        console.log(
-          "FCM PAYLOAD:",
-          JSON.stringify(payload, null, 2)
-        );
-
-        try {
-
-          await firebaseAdmin.messaging().send(payload);
-
-          console.log(
-            `Notification sent to ${targetUserId}`
-          );
-
-        } catch (err) {
-
-          console.error(
-            "FCM ERROR:",
-            err.message
-          );
-
-          // REMOVE INVALID TOKEN
-          if (
-            err.code ===
-            "messaging/registration-token-not-registered"
-          ) {
-
-            await fcmModel.deleteOne({
-              fcmToken: t.fcmToken
-            });
-          }
-        }
-      }
+      data: {
+        title,
+        body: message,
+        image: notificationImage || "",
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+        screen: "home",
+      },
     };
-    if (
-      userType !== "admin" &&
-     userType !== "superAdmin" ) {
 
-      const admins = await userModel.find(
-        {
-         // userType: "admin",
-          "address.state": state
-        },
-        { userId: 1 }
-      ).lean();
+    try {
+      await firebaseAdmin.messaging().send(payload);
 
-      const superAdmins = await userModel.find(
-        {
-          userType: userType=="All"?"":userType,
-          //"address.state": state
-        },
-        { userId: 1 }
-      ).lean();
-
-      const receiverMap = new Map();
-
-      [...admins, ...superAdmins].forEach((u) => {
-        receiverMap.set(u.userId, u);
-      });
-
-      const receivers = [...receiverMap.values()];
-
-      if (!receivers.length) {
-        return res.send({
-          status: "error",
-          message: "No admin found"
-        });
-      }
-      for (const receiver of receivers) {
-        await notificationModel.create({
-          userId: receiver.userId,
-          userType,
-          notificationImage,
-          title,
-          message,
-          state,
-          district,
-          city,
-          area,
-          read: false,
-          isActive: true,
-        });
-
-        await sendPushNotification(
-          receiver.userId,
-          title,
-          message,
-          notificationImage
-        );
-      }
-      await notificationModel.create({
-        userId,
-        userType,
-        notificationImage,
-        title,
-        message,
-        state,
-        district,
-        city,
-        area,
-        read: false,
-        isActive: true,
-      });
-
-      // SEND TO SENDER ALSO
-      await sendPushNotification(
-        userId,
-        title,
-        message,
-        notificationImage
+      console.log(
+        `Notification sent to ${targetUserId}`
       );
+    } catch (err) {
+      console.error("FCM ERROR:", err.message);
 
-      return res.send({
-        status: "success",
-        message: `Notification sent to ${receivers.length} users`,
-      });
-    }
-    else {
-
-      const query = {};
-
-      if (userType && userType !== "All") {
-        query.userType = userType;
-      }
-
-      if (state) {
-        query["address.state"] = state;
-      }
-
-      if (district) {
-        query["address.district"] = district;
-      }
-
-      if (city) {
-        query["address.city"] = city;
-      }
-
-      if (area) {
-        query["address.area"] = area;
-      }
-
-      const users = await userModel.find(
-        query,
-        { userId: 1 }
-      ).lean();
-
-      if (!users.length) {
-        return res.send({
-          status: "error",
-          message: "No users found"
+      if (
+        err.code ===
+        "messaging/registration-token-not-registered"
+      ) {
+        await fcmModel.deleteOne({
+          fcmToken: t.fcmToken,
         });
       }
-
-      for (const receiver of users) {
-
-        await notificationModel.create({
-          userId: receiver.userId,
-          userType,
-          notificationImage,
-          title,
-          message,
-          state,
-          district,
-          city,
-          area,
-          read: false,
-          isActive: true,
-        });
-
-        await sendPushNotification(
-          receiver.userId,
-          title,
-          message,
-          notificationImage
-        );
-      }
-
-      return res.send({
-        status: "success",
-        message: `Notification sent to ${users.length} users`,
-      });
     }
-
-  } catch (error) {
-
-    console.error(
-      "NOTIFICATION ERROR:",
-      error
-    );
-
-    return res.send({
-      status: "error",
-      message: error.message
-    });
   }
 };
+
+// ==================================================
+// COLLECT RECEIVERS (NO DUPLICATES)
+// ==================================================
+
+const receivers = new Map();
+
+// DIRECT USER
+if (userId && userId !== "") {
+  receivers.set(userId, userId);
+}
+
+// ADMIN FLOW
+if (isAdmin === true || isAdmin === "true") {
+  const admins = await userModel.find(
+    {
+      userType: "admin",
+      "address.state": state,
+    },
+    { userId: 1 }
+  ).lean();
+
+  const superAdmins = await userModel.find(
+    {
+      userType: "superAdmin",
+    },
+    { userId: 1 }
+  ).lean();
+
+  [...admins, ...superAdmins].forEach((u) => {
+    receivers.set(u.userId, u.userId);
+  });
+}
+
+// SUPER ADMIN FLOW
+if (req.user?.userType === "superAdmin") {
+  const query = {};
+
+  if (userType && userType !== "All") {
+    query.userType = userType;
+  }
+
+  if (state) {
+    query["address.state"] = state;
+  }
+
+  if (district) {
+    query["address.district"] = district;
+  }
+
+  if (city) {
+    query["address.city"] = city;
+  }
+
+  if (area) {
+    query["address.area"] = area;
+  }
+
+  const users = await userModel.find(
+    query,
+    { userId: 1 }
+  ).lean();
+
+  users.forEach((u) => {
+    receivers.set(u.userId, u.userId);
+  });
+}
+
+if (receivers.size === 0) {
+  return res.send({
+    status: "error",
+    message: "No users found",
+  });
+}
+
+// ==================================================
+// SAVE + SEND
+// ==================================================
+
+for (const receiverId of receivers.keys()) {
+  await notificationModel.create({
+    userId: receiverId,
+    userType,
+    notificationImage,
+    title,
+    message,
+    state,
+    district,
+    city,
+    area,
+    read: false,
+    isActive: true,
+  });
+
+  await sendPushNotification(
+    receiverId,
+    title,
+    message,
+    notificationImage
+  );
+}
+
+return res.send({
+  status: "success",
+  message: `Notification sent to ${receivers.size} users`,
+});
+
+} catch (error) {
+console.error(
+"NOTIFICATION ERROR:",
+error
+);
+
+return res.send({
+  status: "error",
+  message: error.message,
+});
+
+}
+};
+//neww
+// exports.createNotification = async (req, res) => {
+//   try {
+//   const {
+//       userId,
+//       userType,isAdmin,
+//       title,
+//       message,
+//       state,
+//       district,
+//       city,
+//       area
+//     } = req.body;
+
+//     if (!userId || !userType || !title || !message) {
+//       return res.send({
+//         status: "error",
+//         message: "Missing fields"
+//       });
+//     }
+
+//     // CHECK USER
+//     const sender = await userModel.findOne(
+//       { userId },
+//       { address: 1 }
+//     ).lean();
+
+//     if (!sender) {
+//       return res.send({
+//         status: "error",
+//         message: "No user found"
+//       });
+//     }
+
+//     // IMAGE
+//     let notificationImage = "";
+
+//    if (req.file) {
+//   notificationImage = await uploadToS3(req.file);
+
+//   console.log("S3 URL:", notificationImage);
+// }
+// console.log("Uploaded file:", req.file);
+//     const sendPushNotification = async (
+//       targetUserId,
+//       title,
+//       message,
+//       notificationImage
+//     ) => {
+
+//       const tokens = await fcmModel.find(
+//         { userId: targetUserId },
+//         { fcmToken: 1, _id: 0 }
+//       ).lean();
+
+//       if (!tokens.length) return;
+
+//       for (const t of tokens) {
+
+//         const payload = {
+//           token: t.fcmToken,
+
+//           notification: {
+//             title: title,
+//             body: message,
+//           },
+
+//           android: {
+//             priority: "high",
+//             notification: {
+//               title: title,
+//               body: message,
+//               sound: "default",
+//               channelId: "high_importance_channel",
+
+//               // IMPORTANT
+//               imageUrl: notificationImage || undefined,
+//             },
+//           },
+
+//           apns: {
+//             payload: {
+//               aps: {
+//                 "mutable-content": 1,
+//                 sound: "default",
+//               },
+//             },
+
+//             fcm_options: {
+//               image: notificationImage || undefined,
+//             },
+//           },
+
+//           data: {
+//             title: title,
+//             body: message,
+//             image: notificationImage || "",
+//             click_action: "FLUTTER_NOTIFICATION_CLICK",
+//             screen: "home",
+//           },
+//         };
+
+//         console.log(
+//           "FCM PAYLOAD:",
+//           JSON.stringify(payload, null, 2)
+//         );
+
+//         try {
+
+//           await firebaseAdmin.messaging().send(payload);
+
+//           console.log(
+//             `Notification sent to ${targetUserId}`
+//           );
+
+//         } catch (err) {
+
+//           console.error(
+//             "FCM ERROR:",
+//             err.message
+//           );
+
+//           // REMOVE INVALID TOKEN
+//           if (
+//             err.code ===
+//             "messaging/registration-token-not-registered"
+//           ) {
+
+//             await fcmModel.deleteOne({
+//               fcmToken: t.fcmToken
+//             });
+//           }
+//         }
+//       }
+//     };
+//     if(userId!==""){
+//    await notificationModel.create({
+//           userId: userId,
+//           userType,
+//           notificationImage,
+//           title,
+//           message,
+//           state,
+//           district,
+//           city,
+//           area,
+//           read: false,
+//           isActive: true,
+//         });
+      
+//     await sendPushNotification(
+//           userId,
+//           title,
+//           message,
+//           notificationImage
+//         );
+//       }
+//        const allUsers = await userModel.find(
+//         {
+//           userType: userType,
+//         },
+//         { userId: 1 }
+//       ).lean();
+//       const userMap = new Map();
+
+//       [ ...allUsers].forEach((u) => {
+//         userMap.set(u.userId, u);
+//       });
+
+//       const allUsersMap = [...userMap.values()];
+
+    
+//       for (const user of allUsersMap) {
+//         await notificationModel.create({
+//           userId: user.userId,
+//           userType,
+//           notificationImage,
+//           title,
+//           message,
+//           state,
+//           district,
+//           city,
+//           area,
+//           read: false,
+//           isActive: true,
+//         });
+      
+
+//       await sendPushNotification(
+//           user.userId,
+//           title,
+//           message,
+//           notificationImage
+//         );
+//       }
+//     // if (
+//     //   userType !== "admin" &&
+//     //  userType !== "superAdmin" ) {
+//     if(isAdmin){
+//       const admins = await userModel.find(
+//         {
+//          userType: "admin",
+//           "address.state": state
+//         },
+//         { userId: 1 }
+//       ).lean();
+
+//       // const superAdmins = await userModel.find(
+//       //   {
+//       //     userType: userType=="All"?"":userType,
+//       //     "address.state": state
+//       //   },
+//       //   { userId: 1 }
+//       // ).lean();
+
+//       const superAdmins = await userModel.find(
+//         {
+//           userType: userType=="superAdmin",
+//         },
+//         { userId: 1 }
+//       ).lean();
+//       const receiverMap = new Map();
+
+//       [...admins, ...superAdmins].forEach((u) => {
+//         receiverMap.set(u.userId, u);
+//       });
+
+//       const receivers = [...receiverMap.values()];
+
+//       if (!receivers.length) {
+//         return res.send({
+//           status: "error",
+//           message: "No admin found"
+//         });
+//       }
+//       for (const receiver of receivers) {
+//         await notificationModel.create({
+//           userId: receiver.userId,
+//           userType,
+//           notificationImage,
+//           title,
+//           message,
+//           state,
+//           district,
+//           city,
+//           area,
+//           read: false,
+//           isActive: true,
+//         });
+
+//           await sendPushNotification(
+//           receiver.userId,
+//           title,
+//           message,
+//           notificationImage
+//         );
+//       }
+
+//       // await notificationModel.create({
+//       //   userId,
+//       //   userType,
+//       //   notificationImage,
+//       //   title,
+//       //   message,
+//       //   state,
+//       //   district,
+//       //   city,
+//       //   area,
+//       //   read: false,
+//       //   isActive: true,
+//       // });
+
+//       // // SEND TO SENDER ALSO
+//       // await sendPushNotification(
+//       //   userId,
+//       //   title,
+//       //   message,
+//       //   notificationImage
+//       // );
+
+//       // return res.send({
+//       //   status: "success",
+//       //   message: `Notification sent to ${receivers.length} users`,
+//       // });
+//     }
+//      if(req.user.userType=="superAdmin"){
+
+
+//       const query = {};
+
+//       if (userType && userType !== "All") {
+//         query.userType = userType;
+//       }
+//      if (userId && userId !== "") {
+//         query.userId = userId;
+//       }
+//       if (state) {
+//         query["address.state"] = state;
+//       }
+
+//       if (district) {
+//         query["address.district"] = district;
+//       }
+
+//       if (city) {
+//         query["address.city"] = city;
+//       }
+
+//       if (area) {
+//         query["address.area"] = area;
+//       }
+
+//       const users = await userModel.find(
+//         query,
+//         { userId: 1 }
+//       ).lean();
+
+//       if (!users.length) {
+//         return res.send({
+//           status: "error",
+//           message: "No users found"
+//         });
+//       }
+
+//       for (const receiver of users) {
+
+//         await notificationModel.create({
+//           userId: receiver.userId,
+//           userType,
+//           notificationImage,
+//           title,
+//           message,
+//           state,
+//           district,
+//           city,
+//           area,
+//           read: false,
+//           isActive: true,
+//         });
+
+//         await sendPushNotification(
+//           receiver.userId,
+//           title,
+//           message,
+//           notificationImage
+//         );
+//       }
+
+//       return res.send({
+//         status: "success",
+//         message: `Notification sent to ${users.length} users`,
+//       });
+//     }
+
+//   } catch (error) {
+
+//     console.error(
+//       "NOTIFICATION ERROR:",
+//       error
+//     );
+
+//     return res.send({
+//       status: "error",
+//       message: error.message
+//     });
+//   }
+// };
 //    exports.createNotification = async (req, res) => {
 //    try {
 //     const { userId, userType, title, message, state, district, city, area } = req.body;
