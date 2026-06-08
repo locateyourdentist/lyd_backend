@@ -336,9 +336,9 @@ return res.send({status:"error",message:"no plans found"})
 }
 
 exports.createUserPlan=async(req,res)=>{
-    const{userId,planId,planName,price,startDate,endDate}=req.body;
+    const{userId,planId,planName,price,startDate,endDate, imageCount, imageSize, videoCount, videoSize}=req.body;
 try{
-  if(!userId||!planId||!planName||!startDate||!endDate){
+  if(!userId||!planId||!planName||!startDate||!endDate||imageCount||imageSize||videoCount||videoSize){
   return res.send({status:"error",message:"missing fields"})
   }
 const checkAlreadyPlan=await  userPlanModel.findOneAndUpdate({userId:userId}, { $set: { isActive: false } },
@@ -354,7 +354,7 @@ const newPlanIdObj = await planIdModel.findOneAndUpdate(
 { id1: "planUserId" },{ $inc: { planUserId: 1 } },{ upsert: true, new: true });
 console.log(newPlanIdObj.planUserId)
 
-const planCreate=new userPlanModel({userId,planUserId:newPlanIdObj.planUserId,planId,planName,startDate,endDate,price:price})
+const planCreate=new userPlanModel({userId,planUserId:newPlanIdObj.planUserId,planId,planName,startDate,endDate,price:price,imageCount:imageCount, imageSize:imageSize, videoCount:videoCount, videoSize:videoSize})
 const savePlan=await planCreate.save();
 const checkPlanIdExists=await planModel.findOne({planId:planId,isActive:true})
 console.log(checkPlanIdExists.details)
@@ -366,7 +366,11 @@ console.log(checkPlanIdExists.details)
       "details.plan.basePlan.isActive": true,
       "details.plan.basePlan.startDate": startDate,
       "details.plan.basePlan.endDate": endDate,
-      "details.plan.basePlan.name": planName
+      "details.plan.basePlan.name": planName,
+      "details.plan.basePlan.imageCount": imageCount,
+      "details.plan.basePlan.imageSize": imageSize,
+      "details.plan.basePlan.videoCount": videoCount,
+      "details.plan.basePlan.videoSize": videoSize
  }
   },
   { new: true }
