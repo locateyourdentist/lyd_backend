@@ -416,7 +416,7 @@ if (filters.latitude && filters.longitude) {
     },
   });
 
-  // ✅ apply filters AFTER geoNear
+
   if (Object.keys(matchQuery).length) {
     pipeline.push({ $match: matchQuery });
   }
@@ -777,7 +777,16 @@ const isAdmin =
           ]
         };
       }
+const mergedDetails = {
+  ...(existingUser.details || {}),
+  ...(parsedDetails || {})
+};
 
+// MERGE EXISTING ADDRESS
+const mergedAddress = {
+  ...(existingUser.address || {}),
+  ...addressUpdate
+};
       const updateFields = {
         name,
         dob,
@@ -785,8 +794,10 @@ const isAdmin =
         email: email?.trim(),
         mobileNumber: mobileNumber?.trim(),
         location,
-        address: addressUpdate,
-        details: parsedDetails,
+        address:mergedAddress,
+        details:mergedDetails,
+                // address: addressUpdate,
+        // details: parsedDetails,
         image: profileImages,
         certificates: certificatesArr,
         logoImage: logoImagesArr,
