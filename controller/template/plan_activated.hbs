@@ -1,100 +1,3 @@
-{{!-- <!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-<title>Plan Activated</title>
-</head>
-
-<body style="margin:0;padding:0;background:#f5f7fb;font-family:Inter,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0">
-    <tr>
-      <td align="center" style="padding:40px 15px;">
-        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.08);overflow:hidden;">
-          
-          <!-- Header -->
-         <tr>
-  <td align="center" 
-      style="background:#004958; padding:30px; color:#ffffff; text-align:center;">
-    
-    <!-- Embedded Logo -->
-    <img src="cid:logo" 
-         width="80" 
-         style="display:block; margin:0 auto 15px; border:0; outline:none; text-decoration:none;" 
-         alt="LYD App Logo" />
-    
-    <!-- Header Text -->
-    <h1 style="margin:0; font-size:24px; line-height:1.2;">
-       LYD App
-    </h1>
-    
-    <!-- Optional subtitle -->
-    {{!-- <p style="margin:8px 0 0; font-size:16px; opacity:0.9;">
-      You're all set!
-    </p> --}}
-    
-  </td>
-</tr>
-
-            <td style="padding:30px;">
-    <p style="color:#374151;font-size:15px;text-align:center;">
-    <strong>Your Plan Activated</strong>
-   </p>
-                
-              </p>
-              <p style="font-size:16px;color:#111827;">
-                Hi <strong>{{userName}}</strong>,
-              </p>
-
-              {{!-- <p style="color:#374151;font-size:15px;">
-                Your subscription has been successfully activated. Here are the details:
-              </p> --}}
-<p style="color:#374151;font-size:15px;">
-  {{activationMessage}}
-</p>
-
-              <!-- Card -->
-              <table width="100%" style="background:#f9fafb;border-radius:10px;padding:20px;margin-top:15px;">
-                <tr>
-                  <td style="font-size:14px;color:#6b7280;">Plan</td>
-                  <td align="right" style="font-size:15px;font-weight:600;">{{planName}}</td>
-                </tr>
-                <tr><td colspan="2" height="10"></td></tr>
-                <tr>
-                  <td style="font-size:14px;color:#6b7280;">Start Date</td>
-                  <td align="right">{{startDate}}</td>
-                </tr>
-                <tr>
-                  <td style="font-size:14px;color:#6b7280;">Expires On</td>
-                  <td align="right">{{expiryDate}}</td>
-                </tr>
-                <tr>
-                  <td style="font-size:14px;color:#6b7280;">Amount</td>
-                  <td align="right"><strong>{{amount}}</strong></td>
-                </tr>
-              </table>
-
-              <!-- CTA -->
-              <div style="text-align:center;margin-top:25px;">
-                <a href="{{dashboardUrl}}" style="background:#004958;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600;font-size:15px;">
-                  Go to Dashboard
-                </a>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding:20px;text-align:center;color:#9ca3af;font-size:12px;">
-              © {{year}} {{companyName}} • All rights reserved
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html> --}}
 <!DOCTYPE html>
 <html>
 <head>
@@ -111,25 +14,26 @@
 
 <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;box-shadow:0 8px 25px rgba(0,0,0,0.08);overflow:hidden;">
   <tr>
-    <div align="center" style="background:#004958;padding:35px 25px;">
-            <img src="{{logoUrl}}" 
-           width="90" 
-           alt="Company Logo" 
-           style="display:block;margin:0 auto 15px;border:0;" />
+  <td align="center" style="background:#004958;padding:35px 25px;">
+    <img
+      src="{{logoUrl}}"
+      width="90"
+      alt="Company Logo"
+      style="display:block;margin:0 auto 15px auto;border:0;"
+    />
 
-      <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:600;letter-spacing:0.5px;">
-        Plan Activated Successfully
-      </h1>
+    <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:600;letter-spacing:0.5px;">
+      Plan Activated Successfully
+    </h1>
 
-      <p style="margin:8px 0 0;color:#cfe8ed;font-size:14px;">
-        Your subscription is now active
-      </p>
-
-    </td>
-  </tr>
+    <p style="margin:8px 0 0;color:#cfe8ed;font-size:14px;">
+      Your subscription is now active
+    </p>
+  </td>
+</tr>
   <tr>
     <td style="padding:35px 30px;">
-  <p style="margin:0 0 15px;font-size:16px;color:#111827;">
+  <p style="margin:0 0 15px;font-size:16px;color:#052A6E;">
         Hi <strong>{{userName}}</strong>,
       </p>
      <p style="margin:0 0 20px;font-size:15px;color:#4b5563;line-height:1.6;">
@@ -161,7 +65,7 @@
       </table>
       <div style="text-align:center;margin-top:30px;">
         <a href="{{dashboardUrl}}" 
-           style="background:#004958;
+           style="background:#052A6E;
                   color:#ffffff;
                   text-decoration:none;
                   padding:14px 28px;

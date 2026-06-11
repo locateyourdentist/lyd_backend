@@ -341,8 +341,7 @@ try{
   if(!userId||!planId||!planName||!startDate||!endDate||imageCount||imageSize||videoCount||videoSize){
   return res.send({status:"error",message:"missing fields"})
   }
-const checkAlreadyPlan=await  userPlanModel.findOneAndUpdate({userId:userId}, { $set: { isActive: false } },
-  { new: true })
+ const checkAlreadyPlan=await  userPlanModel.findOneAndUpdate({userId:userId}, { $set: { isActive: false } },{ new: true })
 
 // console.log(`ls${checkAlreadyPlan}`)
 // if(checkAlreadyPlan.length>0){
@@ -353,10 +352,11 @@ const checkAlreadyPlan=await  userPlanModel.findOneAndUpdate({userId:userId}, { 
 const newPlanIdObj = await planIdModel.findOneAndUpdate(
 { id1: "planUserId" },{ $inc: { planUserId: 1 } },{ upsert: true, new: true });
 console.log(newPlanIdObj.planUserId)
-
-const planCreate=new userPlanModel({userId,planUserId:newPlanIdObj.planUserId,planId,planName,startDate,endDate,price:price,imageCount:imageCount, imageSize:imageSize, videoCount:videoCount, videoSize:videoSize})
-const savePlan=await planCreate.save();
+//const savePlan=await planCreate.save();
 const checkPlanIdExists=await planModel.findOne({planId:planId,isActive:true})
+const planCreate=new userPlanModel({userId,planUserId:newPlanIdObj.planUserId,planId,details: checkPlanIdExists.details||"",planName:planName,startDate:endDate,price:price,imageCount:imageCount, imageSize:imageSize, videoCount:videoCount, videoSize:videoSize})
+const savePlan=await planCreate.save();
+//const checkPlanIdExists=await planModel.findOne({planId:planId,isActive:true})
 console.log(checkPlanIdExists.details)
  await userModel.findOneAndUpdate(
   { userId: userId, isActive: true },
@@ -407,12 +407,13 @@ const checkAlreadyPlan=await  addOnsUserModel.findOneAndUpdate({userId:userId}, 
 const newPlanIdObj = await addOnsIdModel.findOneAndUpdate(
 { id1: "addOnsUserId" },{ $inc: { addOnsUserId: 1 } },{ upsert: true, new: true });
 console.log(newPlanIdObj.addOnsUserId)
-
-const planCreate=new addOnsUserModel({userId,addOnsPlanId,addOnsUserId:newPlanIdObj.addOnsUserId,addOnsPlanName,startDate,endDate,price:price})
-const savePlan=await planCreate.save();
-//const user=await userModel.findOneAndUpdate({userId:userId},{$set:{details:details}})
 const checkPlanIdExists=await addOnsModel.findOne({addOnsPlanId:addOnsPlanId,isActive:true})
 console.log(checkPlanIdExists.details)
+const planCreate=new addOnsUserModel({userId,addOnsPlanId,addOnsUserId:newPlanIdObj.addOnsUserId,details:checkPlanIdExists.details,addOnsPlanName:addOnsPlanName,startDate:startDate,endDate:endDate,price:price})
+const savePlan=await planCreate.save();
+//const user=await userModel.findOneAndUpdate({userId:userId},{$set:{details:details}})
+// const checkPlanIdExists=await addOnsModel.findOne({addOnsPlanId:addOnsPlanId,isActive:true})
+// console.log(checkPlanIdExists.details)
 await userModel.findOneAndUpdate(
   { userId: userId, isActive: true },
   {
@@ -458,9 +459,11 @@ const checkAlreadyPlan=await  jobPlanUserModel.findOneAndUpdate({userId:userId},
 const newPlanIdObj = await jobPlanIdModel.findOneAndUpdate(
 { id1: "jobPlansUserId" },{ $inc: { jobPlansUserId: 1 } },{ upsert: true, new: true });
 console.log(newPlanIdObj.jobPlansUserId)
-const planCreate=new jobPlanUserModel({userId,jobPlansId,jobPlansUserId:newPlanIdObj.jobPlansUserId,jobPlansName,startDate,endDate,price:price})
-const savePlan=await planCreate.save();
 const checkPlanIdExists=await jobPlanModel.findOne({jobPlansId:jobPlansId,isActive:true})
+
+const planCreate=new jobPlanUserModel({userId,jobPlansId,jobPlansUserId:newPlanIdObj.jobPlansUserId,details:checkPlanIdExists.details,jobPlansName:jobPlansName,startDate:startDate,endDate:endDate,price:price})
+const savePlan=await planCreate.save();
+//const checkPlanIdExists=await jobPlanModel.findOne({jobPlansId:jobPlansId,isActive:true})
 console.log(checkPlanIdExists)
 await userModel.findOneAndUpdate(
   { userId: userId, isActive: true },
@@ -510,9 +513,11 @@ const checkAlreadyPlan=await  webinarPlanuserModel.findOneAndUpdate({userId:user
 const newPlanIdObj = await webinarPlanIdModel.findOneAndUpdate(
 { id1: "webinarPlanUserId" },{ $inc: { webinarPlanUserId: 1 } },{ upsert: true, new: true });
 console.log(newPlanIdObj.webinarPlanUserId)
-const planCreate=new webinarPlanuserModel({userId,webinarPlanUserId:newPlanIdObj.webinarPlanUserId,webinarUserPlansName,startDate,endDate,price:price})
-const savePlan=await planCreate.save();
 const checkPlanIdExists=await webinarPlanModel.findOne({webinarPlanId:webinarPlanId,isActive:true})
+
+const planCreate=new webinarPlanuserModel({userId,webinarPlanUserId:newPlanIdObj.webinarPlanUserId,details:checkPlanIdExists.details,webinarUserPlansName:webinarUserPlansName,startDate:startDate,endDate:endDate,price:price})
+const savePlan=await planCreate.save();
+//const checkPlanIdExists=await webinarPlanModel.findOne({webinarPlanId:webinarPlanId,isActive:true})
 console.log(checkPlanIdExists)
 await userModel.findOneAndUpdate(
   { userId: userId, isActive: true },
@@ -559,12 +564,14 @@ const checkAlreadyPlan=await  postImagesuserModel.findOneAndUpdate({userId:userI
 const newPlanIdObj = await postImagesIdmodel.findOneAndUpdate(
 { id1: "postImageUserId" },{ $inc: { postImageUserId: 1 } },{ upsert: true, new: true });
 console.log(newPlanIdObj.postImageUserId)
-const planCreate=new postImagesuserModel({userId,postImagesPlanId,
+const checkPlanIdExists=await postImagesmodel.findOne({postImagesPlanId:postImagesPlanId,isActive:true})
+
+const planCreate=new postImagesuserModel({userId,postImagesPlanId,details:checkPlanIdExists.details,
   // postImagesPlanUserId:newPlanIdObj.postImageUserId,
   postImageUserId: newPlanIdObj.postImageUserId, 
   postPlanName,startDate,endDate,price:price})
 const savePlan=await planCreate.save();
-const checkPlanIdExists=await postImagesmodel.findOne({postImagesPlanId:postImagesPlanId,isActive:true})
+//const checkPlanIdExists=await postImagesmodel.findOne({postImagesPlanId:postImagesPlanId,isActive:true})
 console.log(checkPlanIdExists)
 await userModel.findOneAndUpdate(
   { userId: userId, isActive: true },
@@ -604,14 +611,110 @@ await deactivateJobPlansForUser();
 await deactivateWebinarPlansForUser();
 await deactivatePostImagePlansForUser();
 const checkPlan=await userPlanModel.find({userId:userId,isActive:true})
-
 if(!checkPlan){
-    res.send({status:"error",message:"no plan found"})
+    res.send({status:"error",message:"There is no Baseplan found"})
 }
- else{
-const checkPlan=await userModel.find({userId:userId},{"details.plan":1,_id:0})
-res.send({status:"success",data:checkPlan})
-}
+ const basePlan = await userPlanModel.findOne(
+      { userId, isActive: true }
+    );
+
+    const addonsPlan = await addOnsUserModel.findOne(
+      { userId, isActive: true }
+    );
+
+    const jobPlan = await jobPlanUserModel.findOne(
+      { userId, isActive: true }
+    );
+
+    const webinarPlan = await webinarPlanuserModel.findOne(
+      { userId, isActive: true }
+    );
+
+    const posterPlan = await postImagesuserModel.findOne(
+      { userId, isActive: true }
+    );
+
+    // return res.send({
+    //   status: "success",
+    //   data: {
+    //     //planDetails: user.details.plan || {},
+    //     basePlan,
+    //     addonsPlan,
+    //     jobPlan,
+    //     webinarPlan,
+    //     posterPlan
+    //   }
+    // });
+return res.send({
+  status: "success",
+  data: [
+    {
+      details: {
+        plan: {
+          basePlan: basePlan
+            ? {
+                details: basePlan.details || {},
+                startDate: basePlan.startDate,
+                endDate: basePlan.endDate,
+                isActive: basePlan.isActive,
+                name: basePlan.planName,
+                price: basePlan.price
+              }
+            : null,
+
+          addonsPlan: addonsPlan
+            ? {
+                details: addonsPlan.details || {},
+                startDate: addonsPlan.startDate,
+                endDate: addonsPlan.endDate,
+                isActive: addonsPlan.isActive,
+                name: addonsPlan.addOnsPlanId,
+                price: addonsPlan.price
+              }
+            : null,
+
+          jobPlan: jobPlan
+            ? {
+                details: jobPlan.details || {},
+                startDate: jobPlan.startDate,
+                endDate: jobPlan.endDate,
+                isActive: jobPlan.isActive,
+                name: jobPlan.jobPlanName,
+                price: jobPlan.price
+              }
+            : null,
+
+          webinarPlan: webinarPlan
+            ? {
+                details: webinarPlan.details || {},
+                startDate: webinarPlan.startDate,
+                endDate: webinarPlan.endDate,
+                isActive: webinarPlan.isActive,
+                name: webinarPlan.webinarPlanName,
+                price: webinarPlan.price
+              }
+            : null,
+
+          posterPlan: posterPlan
+            ? {
+                details: posterPlan.details || {},
+                startDate: posterPlan.startDate,
+                endDate: posterPlan.endDate,
+                isActive: posterPlan.isActive,
+                name: posterPlan.postPlanName,
+                price: posterPlan.price
+              }
+            : null
+        }
+      }
+    }
+  ]
+});
+ 
+// else{
+// const checkPlan=await userModel.find({userId:userId},{"details.plan":1,_id:0})
+// res.send({status:"success",data:checkPlan})
+// }
 }
 catch(error){
 return res.send({status:"error",message:`plan error ${error.message}`})
@@ -686,7 +789,6 @@ console.log(`safgg${users}`)
     }
   }
 };
-
 const deactivateAddOnsPlansForUser = async () => {
   const users = await userModel.find({
     "details.plan.addonsPlan.isActive": true
@@ -697,157 +799,170 @@ const deactivateAddOnsPlansForUser = async () => {
 
   for (const user of users) {
     const addonsPlan = user.details?.plan?.addonsPlan;
+
     if (!addonsPlan?.endDate) continue;
 
     const endDate = parseDate(addonsPlan.endDate);
+
     if (!endDate) continue;
 
     endDate.setUTCHours(0, 0, 0, 0);
 
     if (today > endDate) {
+
       await userModel.updateOne(
         { _id: user._id },
         {
           $set: {
-            "details.plan.addonsPlan.isActive": false
+            "details.plan.addonsPlan.isActive": false,
+            updatedDate: new Date()
           }
         }
       );
 
-      console.log(`addons plan deactivated for user ${user.userId}`);
-    }
-  await addOnsUserModel.updateMany(
-  { userId: user.userId, isActive: true },
-  { $set: { isActive: false, updatedDate: new Date() } });
+      await addOnsUserModel.updateMany(
+        {
+          userId: user.userId,
+          isActive: true
+        },
+        {
+          $set: {
+            isActive: false,
+            updatedDate: new Date()
+          }
+        }
+      );
 
+      console.log(
+        `Addons plan deactivated for user ${user.userId}`
+      );
+    }
   }
 };
+// const deactivateAddOnsPlansForUser = async () => {
+//   const users = await userModel.find({
+//     "details.plan.addonsPlan.isActive": true
+//   });
 
- const deactivateJobPlansForUser = async () => {
-//   const activePlans = await jobPlanUserModel.find({ isActive: true });
 //   const today = new Date();
 //   today.setUTCHours(0, 0, 0, 0);
 
-//   const deactivatedPlans = [];
+//   for (const user of users) {
+//     const addonsPlan = user.details?.plan?.addonsPlan;
+//     if (!addonsPlan?.endDate) continue;
 
-//   for (let plan of activePlans) {
-//     let endDate = parseDate(plan.endDate);
+//     const endDate = parseDate(addonsPlan.endDate);
+//     if (!endDate) continue;
 
-//     if (!endDate) {
-//       console.log("Invalid endDate:", plan.endDate);
-//       continue;
-//     }
 //     endDate.setUTCHours(0, 0, 0, 0);
-//     console.log(`Plan ${plan.planId} → Today: ${today}, End: ${endDate}`);
 
 //     if (today > endDate) {
-//       plan.isActive = false;
-//       plan.updatedDate = new Date();
-//       await plan.save();
-//       deactivatedPlans.push(plan);
-//       console.log(` Deactivated Plan ${plan.planId}`);
+//       await userModel.updateOne(
+//         { _id: user._id },
+//         {
+//           $set: {
+//             "details.plan.addonsPlan.isActive": false
+//           }
+//         }
+//       );
+
+//       console.log(`addons plan deactivated for user ${user.userId}`);
 //     }
+//   await addOnsUserModel.updateMany(
+//   { userId: user.userId, isActive: true },
+//   { $set: { isActive: false, updatedDate: new Date() } });
+
 //   }
-// for (let plan of deactivatedPlans) {
-//     const userId = plan.userId;
-  
-//    // Deactivate job plan
-//     await userModel.findOneAndUpdate(
-//       { userId: userId, isActive: true },
-//       {
-//         $set: {
-//           "details.plan.jobPlan.isActive": false
-//         }
-//       }
-//     );
-//     await jobPlanUserModel.findOneAndUpdate({userId:userId,isActive:true},
-//     {
-//         $set: {
-//           isActive: false
-//         }
-//       }
-//   )
-//   }
-//   console.log("Deactivated plans:", deactivatedPlans);
-   const users = await userModel.find({
-    "details.plan.addonsPlan.isActive": true
+// };
+const deactivateJobPlansForUser = async () => {
+
+  const users = await userModel.find({
+    "details.plan.jobPlan.isActive": true
   });
 
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
   for (const user of users) {
+
     const jobPlan = user.details?.plan?.jobPlan;
+
     if (!jobPlan?.endDate) continue;
 
     const endDate = parseDate(jobPlan.endDate);
+
     if (!endDate) continue;
 
     endDate.setUTCHours(0, 0, 0, 0);
 
     if (today > endDate) {
+
       await userModel.updateOne(
         { _id: user._id },
         {
           $set: {
-            "details.plan.jobPlan.isActive": false
+            "details.plan.jobPlan.isActive": false,
+            updatedDate: new Date()
           }
         }
       );
 
-      console.log(`jobPlan  deactivated for user ${user.userId}`);
-    }
-  await jobPlanUserModel.updateMany(
-  { userId: user.userId, isActive: true },
-  { $set: { isActive: false, updatedDate: new Date() } });
+      await jobPlanUserModel.updateMany(
+        {
+          userId: user.userId,
+          isActive: true
+        },
+        {
+          $set: {
+            isActive: false,
+            updatedDate: new Date()
+          }
+        }
+      );
 
+      console.log(
+        `Job plan deactivated for user ${user.userId}`
+      );
+    }
   }
 };
+//  const deactivateJobPlansForUser = async () => {
+//    const users = await userModel.find({
+//     "details.plan.addonsPlan.isActive": true
+//   });
 
+//   const today = new Date();
+//   today.setUTCHours(0, 0, 0, 0);
 
- const deactivateWebinarPlansForUser = async () => {
-  // const activePlans = await webinarPlanuserModel.find({ isActive: true });
-  // const today = new Date();
-  // today.setUTCHours(0, 0, 0, 0);
+//   for (const user of users) {
+//     const jobPlan = user.details?.plan?.jobPlan;
+//     if (!jobPlan?.endDate) continue;
 
-  // const deactivatedPlans = [];
+//     const endDate = parseDate(jobPlan.endDate);
+//     if (!endDate) continue;
 
-  // for (let plan of activePlans) {
-  //   let endDate = parseDate(plan.endDate);
+//     endDate.setUTCHours(0, 0, 0, 0);
 
-  //   if (!endDate) {
-  //     console.log("Invalid endDate:", plan.endDate);
-  //     continue;
-  //   }
-  //   endDate.setUTCHours(0, 0, 0, 0);
-  //   console.log(`Plan ${plan.planId} → Today: ${today}, End: ${endDate}`);
+//     if (today > endDate) {
+//       await userModel.updateOne(
+//         { _id: user._id },
+//         {
+//           $set: {
+//             "details.plan.jobPlan.isActive": false
+//           }
+//         }
+//       );
 
-  //   if (today > endDate) {
-  //     plan.isActive = false;
-  //     plan.updatedDate = new Date();
-  //     await plan.save();
-  //     deactivatedPlans.push(plan);
-  //     console.log(` Deactivated Plan ${plan.planId}`);
-  //   }
-  // }
-  // for (let plan of deactivatedPlans) {
-  //   const userId = plan.userId;
-  
-  //   await userModel.findOneAndUpdate(
-  //     { userId: userId, isActive: true },
-  //     {
-  //       $set: {
-  //         "details.plan.webinarPlan.isActive": false
-  //       }
-  //     }
-  //   );
-  //   await webinarPlanuserModel.findOneAndUpdate({userId:userId,isActive:true},
-  //   {
-  //       $set: {
-  //         isActive: false
-  //       }
-  //     }
-  // )
+//       console.log(`jobPlan  deactivated for user ${user.userId}`);
+//     }
+//   await jobPlanUserModel.updateMany(
+//   { userId: user.userId, isActive: true },
+//   { $set: { isActive: false, updatedDate: new Date() } });
+
+//   }
+// };
+const deactivateWebinarPlansForUser = async () => {
+
   const users = await userModel.find({
     "details.plan.webinarPlan.isActive": true
   });
@@ -856,37 +971,89 @@ const deactivateAddOnsPlansForUser = async () => {
   today.setUTCHours(0, 0, 0, 0);
 
   for (const user of users) {
+
     const webinarPlan = user.details?.plan?.webinarPlan;
+
     if (!webinarPlan?.endDate) continue;
 
     const endDate = parseDate(webinarPlan.endDate);
+
     if (!endDate) continue;
 
     endDate.setUTCHours(0, 0, 0, 0);
 
     if (today > endDate) {
+
       await userModel.updateOne(
         { _id: user._id },
         {
           $set: {
-            "details.plan.webinarPlan.isActive": false
+            "details.plan.webinarPlan.isActive": false,
+            updatedDate: new Date()
           }
         }
       );
 
-    console.log(`jobPlan  deactivated for user ${user.userId}`);
-    }
-  await webinarPlanuserModel.updateMany(
-  { userId: user.userId, isActive: true },
-  { $set: { isActive: false, updatedDate: new Date() } });
+      await webinarPlanuserModel.updateMany(
+        {
+          userId: user.userId,
+          isActive: true
+        },
+        {
+          $set: {
+            isActive: false,
+            updatedDate: new Date()
+          }
+        }
+      );
 
+      console.log(
+        `Webinar plan deactivated for user ${user.userId}`
+      );
+    }
   }
-  
-  //return deactivatedPlans;
 };
 
+//  const deactivateWebinarPlansForUser = async () => {
+//   const users = await userModel.find({
+//     "details.plan.webinarPlan.isActive": true
+//   });
+
+//   const today = new Date();
+//   today.setUTCHours(0, 0, 0, 0);
+
+//   for (const user of users) {
+//     const webinarPlan = user.details?.plan?.webinarPlan;
+//     if (!webinarPlan?.endDate) continue;
+
+//     const endDate = parseDate(webinarPlan.endDate);
+//     if (!endDate) continue;
+
+//     endDate.setUTCHours(0, 0, 0, 0);
+
+//     if (today > endDate) {
+//       await userModel.updateOne(
+//         { _id: user._id },
+//         {
+//           $set: {
+//             "details.plan.webinarPlan.isActive": false
+//           }
+//         }
+//       );
+
+//     console.log(`jobPlan  deactivated for user ${user.userId}`);
+//     }
+//   await webinarPlanuserModel.updateMany(
+//   { userId: user.userId, isActive: true },
+//   { $set: { isActive: false, updatedDate: new Date() } });
+
+//   }
+  
+//   //return deactivatedPlans;
+// };
 const deactivatePostImagePlansForUser = async () => {
-   const users = await userModel.find({
+
+  const users = await userModel.find({
     "details.plan.posterPlan.isActive": true
   });
 
@@ -894,108 +1061,85 @@ const deactivatePostImagePlansForUser = async () => {
   today.setUTCHours(0, 0, 0, 0);
 
   for (const user of users) {
+
     const posterPlan = user.details?.plan?.posterPlan;
+
     if (!posterPlan?.endDate) continue;
 
     const endDate = parseDate(posterPlan.endDate);
+
     if (!endDate) continue;
 
     endDate.setUTCHours(0, 0, 0, 0);
 
     if (today > endDate) {
+
       await userModel.updateOne(
         { _id: user._id },
         {
           $set: {
-            "details.plan.posterPlan.isActive": false
+            "details.plan.posterPlan.isActive": false,
+            updatedDate: new Date()
           }
         }
       );
 
-    console.log(`jobPlan  deactivated for user ${user.userId}`);
+      await postImagesuserModel.updateMany(
+        {
+          userId: user.userId,
+          isActive: true
+        },
+        {
+          $set: {
+            isActive: false,
+            updatedDate: new Date()
+          }
+        }
+      );
+
+      console.log(
+        `Poster plan deactivated for user ${user.userId}`
+      );
     }
-  await postImagesuserModel.updateMany(
-  { userId: user.userId, isActive: true },
-  { $set: { isActive: false, updatedDate: new Date() } });
-
   }
-  //return deactivatedPlans;
-  // const activePlans = await postImagesuserModel.find({ isActive: true });
-  // const today = new Date();
-  // today.setUTCHours(0, 0, 0, 0);
-
-  // const deactivatedPlans = [];
-
-  // for (let plan of activePlans) {
-  //   let endDate = parseDate(plan.endDate);
-
-  //   if (!endDate) {
-  //     console.log("Invalid endDate:", plan.endDate);
-  //     continue;
-  //   }
-  //   endDate.setUTCHours(0, 0, 0, 0);
-  //   console.log(`Plan ${plan.planId} → Today: ${today}, End: ${endDate}`);
-
-  //   if (today > endDate) {
-  //     plan.isActive = false;
-  //     plan.updatedDate = new Date();
-  //     await plan.save();
-  //     deactivatedPlans.push(plan);
-  //     console.log(` Deactivated Plan ${plan.planId}`);
-  //   }
-  // }
-  // for (let plan of deactivatedPlans) {
-  //   const userId = plan.userId;
-  
-  //   await userModel.findOneAndUpdate(
-  //     { userId: userId, isActive: true },
-  //     {
-  //       $set: {
-  //         "details.plan.posterPlan.isActive": false
-  //       }
-  //     }
-  //   );
-  //   await postImagesuserModel.findOneAndUpdate({userId:userId,isActive:true},
-  //   {
-  //       $set: {
-  //         isActive: false
-  //       }
-  //     }
-  // )
-  // }
-  // console.log("Deactivated plans:", deactivatedPlans);
-  // return deactivatedPlans;
 };
-// exports.getJobCounts=async(req,res)=>{
-//     const{userId}=req.body;
-// try{
-// const getPlans=await jobPlanUserModel.find({userId:userId,isActive:true})
-//     console.log("Plans found:", getPlans);
-// if(getPlans.length==0){
-// return res.send({status:"error",message:"no plans found"})
-// }
-// else{
-//    const startDateStr=getPlans.startDate;
-//    const endDateStr=getPlans.endDate;
-//    const startDate = new Date(`${startDateStr}T00:00:00.000Z`);
-//    const endDate   = new Date(`${endDateStr}T23:59:59.999Z`);
-//    const jobPlansId=getPlans.jobPlansId;
-//    const getCount=await jobPlanModel.find({jobPlansId:jobPlansId})
-//    const JobCounts = parseInt(getCount.count?.jobCount ?? 0, 10) || 0;
-//    const jobPostCounts=await jobModel.find({ userId: userId, createdDate: {
-//     $gte: startDate,
-//     $lte: endDate,},});
-//     const jobPostCount=jobPostCounts.length;
-//     const remaingCount=JobCounts-jobPostCount;
+// const deactivatePostImagePlansForUser = async () => {
+//    const users = await userModel.find({
+//     "details.plan.posterPlan.isActive": true
+//   });
 
-//   return res.send({status:"success",counts:remaingCount})
- 
-// }
-// }
-// catch(error){
-// return res.send({status:"error",message:error.message})
-// }
-// }
+//   const today = new Date();
+//   today.setUTCHours(0, 0, 0, 0);
+
+//   for (const user of users) {
+//     const posterPlan = user.details?.plan?.posterPlan;
+//     if (!posterPlan?.endDate) continue;
+
+//     const endDate = parseDate(posterPlan.endDate);
+//     if (!endDate) continue;
+
+//     endDate.setUTCHours(0, 0, 0, 0);
+
+//     if (today > endDate) {
+//       await userModel.updateOne(
+//         { _id: user._id },
+//         {
+//           $set: {
+//             "details.plan.posterPlan.isActive": false
+//           }
+//         }
+//       );
+
+//     console.log(`jobPlan  deactivated for user ${user.userId}`);
+//     }
+//   await postImagesuserModel.updateMany(
+//   { userId: user.userId, isActive: true },
+//   { $set: { isActive: false, updatedDate: new Date() } });
+
+//   }
+//   // return deactivatedPlans;
+// };
+
   exports.getJobCounts = async (req, res) => {
   const { userId } = req.body;
 
@@ -1038,81 +1182,6 @@ const deactivatePostImagePlansForUser = async () => {
   }
 };
 
-//   exports.calculateIncome_admin = async (req, res) => {
-//   try {
-//     const { fromDate, toDate } = req.body;
-
-//     const dateFilter = {};
-//     if (fromDate && toDate) {
-//       dateFilter.createdDate = {
-//         $gte: new Date(fromDate),
-//         $lte: new Date(toDate),
-//       };
-//     }
-
-//     const posterPlans = await postImagesuserModel.find(dateFilter,{ price: 1, _id: 0 });
-//     const basePlans = await userPlanModel.find(dateFilter,{ price: 1, _id: 0 } );
-//     const addOns = await addOnsUserModel.find(dateFilter,{ price: 1, _id: 0 });
-//     const jobPlans = await jobPlanUserModel.find(dateFilter, { price: 1, _id: 0 });
-//     const webinars = await webinarPlanuserModel.find(dateFilter,{ price: 1, _id: 0 } );
-
-//     const sumPrices = (arr) =>arr.reduce((sum, item) => sum + Number(item.price || 0), 0);
-
-//     const posterIncome = sumPrices(posterPlans);
-//     const basePlanIncome = sumPrices(basePlans);
-//     const addOnsIncome = sumPrices(addOns);
-//     const jobIncome = sumPrices(jobPlans);
-//     const webinarIncome = sumPrices(webinars);
-
-//     const totalIncome =
-//       posterIncome +
-//       basePlanIncome +
-//       addOnsIncome +
-//       jobIncome +
-//       webinarIncome;
-
-//       const data = {
-//       posterActiveUsers: await postImagesuserModel.countDocuments({
-//         ...dateFilter,
-//         isActive: true,
-//       }),
-//       basePlanActiveUsers: await userPlanModel.countDocuments({
-//         ...dateFilter,
-//         isActive: true,
-//       }),
-//       addOnsActiveUsers: await addOnsUserModel.countDocuments({
-//         ...dateFilter,
-//         isActive: true,
-//       }),
-//       jobPlanActiveUsers: await jobPlanUserModel.countDocuments({
-//         ...dateFilter,
-//         isActive: true,
-//       }),
-//       webinarActiveUsers: await webinarPlanuserModel.countDocuments({
-//         ...dateFilter,
-//         isActive: true,
-//       }),
-//     };
-
-//     res.status(200).json({
-//       status: "success",
-//       data: {
-//         total: totalIncome,
-//         posterIncome,
-//         basePlanIncome,
-//         addOnsIncome,
-//         jobIncome,
-//         webinarIncome,
-//         data,
-//       },
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       status: "error",
-//       message: error.message,
-//     });
-//   }
-// };
 const calculateIncomeByState = async (Model, state, dateFilter = {}) => {
   const pipeline = [
     { $match: dateFilter },
@@ -1157,57 +1226,6 @@ const calculateIncomeByState = async (Model, state, dateFilter = {}) => {
   };
 };
 
-//   exports.calculateIncome_admin = async (req, res) => {
-//   try {
-//     const { fromDate, toDate, state } = req.body;
-
-//     const dateFilter = {};
-//     if (fromDate && toDate) {
-//       dateFilter.createdDate = {
-//         $gte: new Date(fromDate),
-//         $lte: new Date(toDate),
-//       };
-//     }
-
-//     const poster = await calculateIncomeByState(postImagesuserModel, state, dateFilter);
-//     const basePlan = await calculateIncomeByState(userPlanModel, state, dateFilter);
-//     const addOns = await calculateIncomeByState(addOnsUserModel, state, dateFilter);
-//     const jobPlan = await calculateIncomeByState(jobPlanUserModel, state, dateFilter);
-//     const webinar = await calculateIncomeByState(webinarPlanuserModel, state, dateFilter);
-
-//     const totalIncome =
-//       poster.income +
-//       basePlan.income +
-//       addOns.income +
-//       jobPlan.income +
-//       webinar.income;
-
-//     res.status(200).json({
-//       status: "success",
-//       data: {
-//         total: totalIncome,
-//         posterIncome: poster.income,
-//         basePlanIncome: basePlan.income,
-//         addOnsIncome: addOns.income,
-//         jobIncome: jobPlan.income,
-//         webinarIncome: webinar.income,
-//         activeUsers: {
-//           poster: poster.activeUsers,
-//           basePlan: basePlan.activeUsers,
-//           addOns: addOns.activeUsers,
-//           jobPlan: jobPlan.activeUsers,
-//           webinar: webinar.activeUsers
-//         }
-//       }
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({
-//       status: "error",
-//       message: error.message,
-//     });
-//   }
-// };
 
 exports.calculateIncome_admin = async (req, res) => {
   try {
@@ -1320,83 +1338,10 @@ exports.getExpenses = async (req, res) => {
     });
   }
 };
-// exports.getExpenses = async (req, res) => {
-//   try {
-//     console.log("Logged-in user type:", req.user.userType);
-//     console.log("Logged-in userId:", req.user.userId);
-
-//     let { month, year, state } = req.body;
-//     const now = new Date();
-
-//     month = month ? Number(month) : now.getMonth() + 1;
-//     year = year ? Number(year) : now.getFullYear();
-
-//     let filter = {};
-
-//     if (month) filter.month = month;
-//     if (year) filter.year = year;
-//     if (state) filter.state = state;
-
-//     // if (req.user.userType.toLowerCase() === "superadmin") {
-//     //   if (state && state.trim() !== "") {
-//     //     const usersInState = await userModel.find(
-//     //       { "address.state": new RegExp(`^${state.trim()}$`, "i") },
-//     //       { userId: 1 }
-//     //     );
-
-//     //     const userIds = usersInState.map(u => u.userId);
-//     //     filter.userId = userIds.length ? { $in: userIds } : null;
-//     //   }
-//     // } else {
-//     //   filter.userId = req.user.userId;
-//     // }
-
-//     console.log("Mongo filter applied:", filter);
-
-//     // const expenses = filter.userId === null
-//     //   ? []
-//     //   : await expenseModel.find(filter).sort({ createdDate: -1 });
-// const expenses = await expenseModel.find(filter).sort({ createdDate: -1 });
-//     const userIds = [...new Set(expenses.map(e => e.userId))]; 
-//     const users = await userModel.find(
-//       { userId: { $in: userIds } },
-//       { userId: 1, name: 1, address: 1, email: 1 } 
-//     );
-
-//     const userMap = {};
-//     users.forEach(u => {
-//       userMap[u.userId] = u;
-//     });
-//     const expensesWithUser = expenses.map(e => ({
-//       ...e.toObject(),
-//       user: userMap[e.userId] || null
-//     }));
-
-//     const total = expensesWithUser.reduce((sum, e) => sum + Number(e.amount), 0);
-
-//        res.send({
-//        status: "success",
-//        data: {
-//         month,
-//         year,
-//         total,state,
-//         expenses: expensesWithUser,
-//       },
-//     });
-
-//   } catch (error) {
-//     console.error(error);
-//     res.send({
-//       status: "error",
-//       message: error.message,
-//     });
-//   }
-// };
 
 
 
-
-  exports.updateExpenses= async (req, res) => {
+exports.updateExpenses= async (req, res) => {
   const { id,title, amount, category, userId } = req.body;
   try {
     const updatedExpense = await expenseModel.findByIdAndUpdate(

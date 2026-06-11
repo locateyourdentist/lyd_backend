@@ -731,28 +731,61 @@ const isAdmin =
       let profileImages = parsedOldImages || [];
       let certificatesArr = parsedOldCertificates || [];
       let logoImagesArr = parsedOldLogoImages || [];
-      if (req.files && req.files.length > 0) {
-         for (const file of req.files) {
+      // if (req.files && req.files.length > 0) {
+      //    for (const file of req.files) {
 
-          const uploadedUrl = await uploadToS3(file);
+      //     const uploadedUrl = await uploadToS3(file);
 
-          switch (file.fieldname) {
+      //     switch (file.fieldname) {
 
-            case "image":
-              profileImages.push(uploadedUrl);
-              break;
+      //       case "image":
+      //         profileImages.push(uploadedUrl);
+      //         break;
 
-            case "certificates":
-              certificatesArr.push(uploadedUrl);
-              break;
+      //       case "certificates":
+      //         certificatesArr.push(uploadedUrl);
+      //         break;
 
-            case "logoImage":
-              logoImagesArr.push(uploadedUrl);
-              break;
-          }
-        }
-      }
+      //       case "logoImage":
+      //         logoImagesArr.push(uploadedUrl);
+      //         break;
+      //     }
+      //   }
+      // }
+if (req.files && req.files.length > 0) {
+  console.log("REQ FILES =", req.files);
 
+  for (const file of req.files) {
+    console.log("FIELDNAME =", file.fieldname);
+
+    const uploadedUrl = await uploadToS3(file);
+
+    console.log("UPLOADED URL =", uploadedUrl);
+
+    switch (file.fieldname) {
+      case "image":
+        console.log("IMAGE FOUND");
+        profileImages.push(uploadedUrl);
+        break;
+
+      case "certificates":
+        console.log("CERT FOUND");
+        certificatesArr.push(uploadedUrl);
+        break;
+
+      case "logoImage":
+        console.log("LOGO FOUND");
+        logoImagesArr.push(uploadedUrl);
+        break;
+
+      default:
+        console.log("UNKNOWN FIELD =", file.fieldname);
+    }
+  }
+}
+
+console.log("profileImages =", profileImages);
+console.log("certificatesArr =", certificatesArr);
       profileImages = [...new Set(profileImages)];
       certificatesArr = [...new Set(certificatesArr)];
       logoImagesArr = [...new Set(logoImagesArr)];
@@ -777,11 +810,24 @@ const isAdmin =
           ]
         };
       }
+// const mergedDetails = {
+//   ...(existingUser.details || {}),
+//   ...(parsedDetails || {})
+// };
 const mergedDetails = {
   ...(existingUser.details || {}),
-  ...(parsedDetails || {})
-};
+  ...(parsedDetails || {}),
 
+  collegeDetails: {
+    ...(existingUser.details?.collegeDetails || {}),
+    ...(parsedDetails?.collegeDetails || {})
+  },
+
+  experienceDetails:
+    parsedDetails?.experienceDetails ||
+    existingUser.details?.experienceDetails ||
+    []
+};
 // MERGE EXISTING ADDRESS
 const mergedAddress = {
   ...(existingUser.address || {}),
@@ -1353,20 +1399,20 @@ const assignFreePlanToUser = async (newUserId, userType) => {
     throw error;
   }
 };
-exports.verifyRegistrationOtp = async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    if (!email || !otp)
-      return res.send({ status: "error", message: "" });
+// exports.verifyRegistrationOtp = async (req, res) => {
+//   try {
+//     const { email, otp } = req.body;
+//     if (!email || !otp)
+//       return res.send({ status: "error", message: "" });
 
-     if (req.file) {
-      appLogo = await uploadToS3(req.file);
-    } 
-   return res.send({ status: "success", message: "Email verified successfully" });
-  } catch (err) {
-    return res.status(500).send({ status: "error", message: err.message });
-  }
-}
+//      if (req.file) {
+//       appLogo = await uploadToS3(req.file);
+//     } 
+//    return res.send({ status: "success", message: "Email verified successfully" });
+//   } catch (err) {
+//     return res.status(500).send({ status: "error", message: err.message });
+//   }
+// }
   exports.verifyRegistrationOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -1443,7 +1489,7 @@ exports.verifyRegistrationOtp = async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: '"LYD" <developer.catchytechnologies@gmail.com>',
+      from: `"LYD" <${process.env.nodemail_username}>`,
       to: email,
       subject: "LYD OTP Verification Mail",
       html: htmlContent,
@@ -1956,7 +2002,7 @@ const appLogourls = appImage.map(img => img.appLogo);
       html: htmlContent1
     });
      await transporter.sendMail({
-      from: '"LYD" <developer.catchytechnologies@gmail.com>',
+      from: `"LYD" <${process.env.nodemail_username}>`,
       to: getUserAddress.email,
       subject,
       html: htmlContent
@@ -2113,17 +2159,17 @@ const renderTemplate = (templateName, data) => {
     //     pass: `${process.env.nodemail_password}`,
     //   }
     // });
-    const appImage= await appLogoModel.find({}
-     //  { userId:req.user.userId } ,
-    
-    );
-   const appLogourls = appImage.map(img => img.appLogo); 
+    const appImage = await appLogoModel
+  .findOne({})
+  .sort({ createdDate: -1 });
+
+const appLogoUrl = appImage?.appLogo || "";
     await transporter.sendMail({
       from: `"${emailData.companyName}" <${process.env.nodemail_username}>`,
       to: user.email,
       subject: subject,
       html: userHtml,
-      logoUrl: appLogourls[0]
+   logoUrl: appLogoUrl
     });
    const adminEmailList = allMailIds.filter(Boolean).join(",");
     if (allMailIds.length) {

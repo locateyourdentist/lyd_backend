@@ -17,6 +17,8 @@ const  planUserModel=new mongoose.Schema({
     price:{
         type:Number
     },
+    details:{type:Object
+    },
     planName:{
         type:String
     },

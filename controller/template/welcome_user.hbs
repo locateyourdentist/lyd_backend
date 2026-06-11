@@ -1,87 +1,3 @@
-{{!-- <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Welcome</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #f4f6f8;
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-    }
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      background: #ffffff;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    }
-    .header {
-      background: linear-gradient(135deg, #004958, #004958);
-      color: #ffffff;
-      padding: 25px;
-      text-align: center;
-    }
-    .content {
-      padding: 30px;
-      color: #333333;
-    }
-    .credentials {
-      background: #f9fafb;
-      border: 1px dashed #4f46e5;
-      border-radius: 8px;
-      padding: 20px;
-      margin: 20px 0;
-    }
-    .btn {
-      display: inline-block;
-      padding: 12px 25px;
-      background: #004958;
-      color: #ffffff;
-      text-decoration: none;
-      border-radius: 6px;
-      font-weight: bold;
-    }
-    .footer {
-      padding: 15px;
-      font-size: 12px;
-      text-align: center;
-      color: #777;
-      background: #f4f6f8;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Welcome 🎉</h1>
-      <p>Your account has been created</p>
-    </div>
-
-    <div class="content">
-      <p>Hello <strong>{{username}}</strong>,</p>
-
-      <p>Your login credentials are:</p>
-
-      <div class="credentials">
-        <p><strong>Username:</strong> {{username}}</p>
-        <p><strong>Password:</strong> {{password}}</p>
-      </div>
-
-      {{!-- <p>Please change your password after first login.</p> --}}
-
-      <a href="{{loginUrl}}" class="btn">Login to App</a>
-    </div>
-
-    <div class="footer">
-      © {{year}} Your App Name
-    </div>
-  </div>
-</body>
-</html> --}}
 <!DOCTYPE html>
 <html>
 <head>
@@ -205,7 +121,7 @@
 
         <div class="credentials">
           <p><strong>Username:</strong> {{username}}</p>
-          <p><strong>Password:</strong> {{password}}</p>
+          {{!-- <p><strong>Password:</strong> {{password}}</p> --}}
         </div>
 
         <p>Please change your password after your first login for security reasons.</p>

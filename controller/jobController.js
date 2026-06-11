@@ -983,145 +983,197 @@ if (filters?.salary) {
   }
 };
 
-//   exports.viewWebinarListJobseekers = async (req, res) => {
-//   try {
-//     const { state, district, city } = req.body;
-
-//     const filter = { isActive: true };
-
-//     if (state) filter.state = { $regex: state, $options: "i" };
-//     if (district) filter.district = { $regex: district, $options: "i" };
-//     if (city) filter.city = { $regex: city, $options: "i" };
-
-//     const data = await webinarModel.aggregate([
-//       { $match: filter },
-//       { $sort: { _id: -1 } },
-//       {
-//     $lookup: {
-//       from: "users",
-//       localField: "userId",
-//       foreignField: "userId",
-//       as: "users",
-//     },
-//   },
-//       {
-//         $project: {
-//           _id: 1,
-//           webinarId: 1,
-//           webinarTitle: 1,
-//           webinarDescription: 1,
-//           webinarImage: 1,
-//           state: 1,
-//           district: 1,
-//           city: 1,
-//           createdDate: 1,
-//           orgName: 1,
-//           place: {
-//   $concat: [
-//     { $ifNull: [ { $arrayElemAt: ["$users.address.city", 0] }, "" ] },
-//     ", ",
-//     { $ifNull: [ { $arrayElemAt: ["$users.address.district", 0] }, "" ] },
-//     ", ",
-//     { $ifNull: [ { $arrayElemAt: ["$users.address.state", 0] }, "" ] }
-//   ]
-// },
-//     //       place: {
-//     //   $concat: [
-//     //     { $ifNull: ["$users.address.city", ""] }, ", ",
-//     //     { $ifNull: ["$users.address.district", ""] }, ", ",
-//     //     { $ifNull: ["$users.address.state", ""] }
-//     //   ]
-//     // },
-//       webinarDate:"${$applicants.details.webinarDate",
-//     startTime:"${$applicants.details.startTime}",
-//     endTime:"${$applicants.details.endTime}",
-//         }
-//       },
-//     ]);
-
-//     if (data.length === 0)
-//       return res.send({ status: "error", message: "no jobs found" });
-
-//     return res.send({ status: "success", data });
-//   } catch (err) {
-//     res.send({ status: "error", message: err.message });
-//   }
-// };
-
-
 exports.viewWebinarListJobseekers = async (req, res) => {
   try {
-    const { state } = req.body;
+    const { startDate, endDate } = req.body;
 
     const pipeline = [
-      { $match: { isActive: true } },
-
       {
-        $lookup: {
-          from: "users", // Make sure your collection name matches exactly
-          localField: "userId",
-          foreignField: "userId",
-          as: "users"
+        $match: {
+          isActive: true
         }
       },
 
-      { $unwind: "$users" } // convert array to object
+      {
+        $addFields: {
+          webinarDateObj: {
+            $dateFromString: {
+              dateString: "$details.webinarDate",
+              format: "%d-%m-%Y"
+            }
+          }
+        }
+      }
     ];
 
-    // Safe state filter
-    if (state && typeof state === "string" && state.trim() !== "") {
+    // Date filter
+    if (startDate && endDate) {
+      const start = new Date(
+        startDate.split("-").reverse().join("-")
+      );
+
+      const end = new Date(
+        endDate.split("-").reverse().join("-")
+      );
+
+      end.setHours(23, 59, 59, 999);
+
       pipeline.push({
         $match: {
-          $expr: {
-            $eq: [
-              { $toUpper: { $trim: { input: "$users.address.state" } } },
-              state.trim().toUpperCase()
-            ]
+          webinarDateObj: {
+            $gte: start,
+            $lte: end
+          }
+        }
+      });
+    } else {
+      // Default: today and future webinars
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      pipeline.push({
+        $match: {
+          webinarDateObj: {
+            $gte: today
           }
         }
       });
     }
 
-    // Project fields
-    pipeline.push({
-      $project: {
-        _id: 1,
-        isActive:1,
-        webinarId: 1,
-        webinarTitle: 1,
-        webinarDescription: 1,
-        webinarImage: 1,
-        createdDate: 1,
-        orgName: 1,
-        webinarDate: "$details.webinarDate",
-        startTime: "$details.startTime",
-        endTime: "$details.endTime",
-        place: {
-          $concat: [
-            { $ifNull: ["$users.address.city", ""] },
-            ", ",
-            { $ifNull: ["$users.address.district", ""] },
-            ", ",
-            { $ifNull: ["$users.address.state", ""] }
-          ]
+    pipeline.push(
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "userId",
+          as: "users"
+        }
+      },
+      {
+        $unwind: {
+          path: "$users",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          webinarId: 1,
+          webinarTitle: 1,
+           webinarDate: "$details.webinarDate",
+          webinarDescription: 1,
+          webinarImage: 1,
+          orgName: 1,
+          isActive: 1,
+          createdDate: 1,
+          startTime: "$details.startTime",
+          endTime: "$details.endTime",
+          place: {
+            $concat: [
+              { $ifNull: ["$users.address.city", ""] },
+              ", ",
+              { $ifNull: ["$users.address.district", ""] },
+              ", ",
+              { $ifNull: ["$users.address.state", ""] }
+            ]
+          }
+        }
+      },
+      {
+        $sort: {
+          webinarDateObj: 1
         }
       }
-    });
+    );
 
     const data = await webinarModel.aggregate(pipeline);
 
-    if (!data.length) {
-      return res.send({
-        status: "error",
-        message: "no webinars found"
-      });
-    }
+    return res.send({
+      status: "success",
+      count: data.length,
+      data
+    });
 
-    return res.send({ status: "success", data });
   } catch (err) {
-    return res.send({ status: "error", message: err.message });
+    return res.send({
+      status: "error",
+      message: err.message
+    });
   }
 };
+// exports.viewWebinarListJobseekers = async (req, res) => {
+//   try {
+//     const { state } = req.body;
+
+//     const pipeline = [
+//       { $match: { isActive: true } },
+
+//       {
+//         $lookup: {
+//           from: "users", // Make sure your collection name matches exactly
+//           localField: "userId",
+//           foreignField: "userId",
+//           as: "users"
+//         }
+//       },
+
+//       { $unwind: "$users" } // convert array to object
+//     ];
+
+//     // Safe state filter
+//     if (state && typeof state === "string" && state.trim() !== "") {
+//       pipeline.push({
+//         $match: {
+//           $expr: {
+//             $eq: [
+//               { $toUpper: { $trim: { input: "$users.address.state" } } },
+//               state.trim().toUpperCase()
+//             ]
+//           }
+//         }
+//       });
+//     }
+
+//     // Project fields
+//     pipeline.push({
+//       $project: {
+//         _id: 1,
+//         isActive:1,
+//         webinarId: 1,
+//         webinarTitle: 1,
+//         webinarDescription: 1,
+//         webinarImage: 1,
+//         createdDate: 1,
+//         orgName: 1,
+//         webinarDate: "$details.webinarDate",
+//         startTime: "$details.startTime",
+//         endTime: "$details.endTime",
+//         place: {
+//           $concat: [
+//             { $ifNull: ["$users.address.city", ""] },
+//             ", ",
+//             { $ifNull: ["$users.address.district", ""] },
+//             ", ",
+//             { $ifNull: ["$users.address.state", ""] }
+//           ]
+//         }
+//       }
+//     });
+
+//     const data = await webinarModel.aggregate(pipeline);
+
+//     if (!data.length) {
+//       return res.send({
+//         status: "error",
+//         message: "no webinars found"
+//       });
+//     }
+
+//     return res.send({ status: "success", data });
+//   } catch (err) {
+//     return res.send({ status: "error", message: err.message });
+//   }
+// };
 
 exports.getwebinarById = async (req, res) => {
   try {
