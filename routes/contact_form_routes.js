@@ -13,5 +13,6 @@ router.post("/contact_details_state_wise",auth,contactController.createContactDe
 router.post("/getAll_contact_details",contactController.getAllContactDetails)
 router.post("/addTextEditorContentForAll",auth,contactController.addtextEditorContentPolicy)
 router.post("/gettextEditorContentForAll",contactController.gettextEditorContentForAll)
+router.post("/get_public_contacts", auth,contactController.getPublicContacts);
 
 module.exports = router;

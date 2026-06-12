@@ -521,6 +521,58 @@ exports.getContactsBySender = async (req, res) => {
     });
   }
 };
+exports.getPublicContacts = async (req, res) => {
+  try {
+    const { fromDate, toDate, search } = req.body;
+
+    let filter = {};
+
+    // 📅 Robust Date Filter (Handles empty strings and single dates safely)
+    if ((fromDate && fromDate.trim() !== "") || (toDate && toDate.trim() !== "")) {
+      filter.createdDate = {};
+      
+      if (fromDate && fromDate.trim() !== "") {
+        filter.createdDate.$gte = new Date(fromDate);
+      }
+      
+      if (toDate && toDate.trim() !== "") {
+        // Sets time boundary to the absolute end of the target day
+        filter.createdDate.$lte = new Date(toDate + "T23:59:59.999Z");
+      }
+    }
+
+    // 🔍 Regex Text Search Block
+    if (search && search.trim() !== "") {
+      const searchRegex = {
+        $regex: search.trim(),
+        $options: "i",
+      };
+
+      filter.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { mobile: searchRegex },
+      ];
+    }
+
+    // If both parameters are empty, find({}) runs and pulls all items automatically
+    const contacts = await publicContactModel
+      .find(filter)
+      .sort({ createdDate: -1 });
+
+    return res.status(200).send({
+      status: "success",
+      total: contacts.length,
+      data: contacts,
+    });
+
+  } catch (error) {
+    return res.status(500).send({
+      status: "error",
+      message: error.message,
+    });
+  }
+};
 exports.addtextEditorContentPolicy = async (req, res) => {
   try {
     const { category, details } = req.body;

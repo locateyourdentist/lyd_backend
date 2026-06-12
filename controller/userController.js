@@ -600,7 +600,11 @@ const isAdmin =
       if (req.files && req.files.length > 0) {
 
         for (const file of req.files) {
-
+  console.log("===============");
+    console.log("Name:", file.originalname);
+    console.log("Mime:", file.mimetype);
+    console.log("Field:", file.fieldname);
+    console.log("Size:", file.size);
           const uploadedUrl = await uploadToS3(file);
 
           switch (file.fieldname) {
@@ -1508,8 +1512,7 @@ const assignFreePlanToUser = async (newUserId, userType) => {
     let userDetails;
     //if(!user){
          //userDetails = await userModel.findOne({ email: email, isActive: true,});
-    userDetails = await userModel.findOne( {   email: new RegExp(`^${email.trim()}$`, "i"),
- isActive: true }, { sort: { createdDate: 1 } });
+    userDetails = await userModel.findOne( {   email: new RegExp(`^${email.trim()}$`, "i"),isActive: true }, { sort: { createdDate: 1 } });
 
   //}
     if (!userDetails) return res.json({ status: "error", message: 'User does not exist' });
@@ -1530,6 +1533,7 @@ const assignFreePlanToUser = async (newUserId, userType) => {
   };
   exports.switchUser = async (req, res) => {
     try {
+
     const { userId } = req.body;
        let user  = await userModel.findOne( {  userId :userId, isActive: true });
     if (!user) return res.json({ status: "error", message: 'User does not exist' });
