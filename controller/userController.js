@@ -26,6 +26,7 @@ const auth=require('../middleware/auth')
 const { uploadToS3 ,deleteFromS3 } = require("../file_uploadImage");
 const userLoginModel=require('../model/loginmodel')
 const appLogoModel=require('../model/app_logo')
+const serviceModel=require('../model/serviceModel')
 
 
  const transporter = nodemailer.createTransport({
@@ -69,10 +70,26 @@ exports.deleteAwsfile = async (req, res) => {
     let record;
       if(name=='appLogo'){
          record = await appLogoModel.findOneAndDelete({ appLogo: fileUrl });
-    }
-    if (!record) {
+          if (!record) {
   return res.json({ status: "error", message: "File not found" });
 }
+    }
+     if(name=='serviceImage'){
+        const result = await serviceModel.updateOne(
+  { image: fileUrl },
+  {
+    $pull: {
+      image: fileUrl
+    }
+  }
+);
+
+console.log(result);
+          if (!result) {
+  return res.json({ status: "error", message: "File not found" });
+}
+     }
+
     res.send({ status:"success", message: "File deleted successfully", result });
   } catch (err) {
     console.error(err);

@@ -409,19 +409,22 @@ if (req.body.existingImages) {
 //     return res.send({ status: "error", message: error.message });
 //   }
 // };
-exports.deactivateServices=async(req,res)=>{
+ exports.deactivateServices=async(req,res)=>{
  const{serviceId}=req.body;
  try{
  const deactivateService= await serviceModel.findOneAndUpdate({serviceId:serviceId},{isActive:false})
- if(deactivateService.length===0){
+ const result = await deleteFromS3(deactivateService.image);
+ const deleteResult = await deleteFromS3(deactivateService.image);
+  console.log("delete result",deleteResult)
+  if(deactivateService.length===0){
     res.send({status:"error",message:"data not found"})
- }
- res.send({status:"success",message:"deactivate successfully"})
- }
- catch(error){
- res.send({status:"error",message:"service not deactivated "})
- }
- }
+   }
+  res.send({status:"success",message:"deactivated successfully"})
+  }
+  catch(error){
+  res.send({status:"error",message:"service not deactivated "})
+  }
+  }
 
 exports.getServicesList=async(req,res)=>{
 const{userId}=req.body;
