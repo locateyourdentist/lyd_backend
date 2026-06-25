@@ -366,9 +366,12 @@ exports.getAllUserDetails = async (req, res) => {
         { userType: regex },
         { mobileNumber: regex },
         { email: regex },
+        { "address.addressLine1": regex },
+        { "address.addressLine2": regex },
         { "address.state": regex },
         { "address.district": regex },
         { "address.city": regex },
+        {"address.area":regex},
         { "details.name": regex },
       ];
     }
@@ -384,6 +387,18 @@ if (filters.state)
   matchQuery["address.state"] = { $regex: `^${filters.state.trim()}$`, $options: "i" };
 if (filters.district)
   matchQuery["address.district"] = { $regex: `^${filters.district.trim()}$`, $options: "i" };
+if (filters.area) {
+  if (Array.isArray(filters.area)) {
+    matchQuery["address.area"] = { $in: filters.area };
+  } else {
+    matchQuery["address.area"] = {
+      $regex: `^${filters.area.trim()}$`,
+      $options: "i"
+    };
+  }
+}
+// if (filters.area)
+//   matchQuery["address.area"] = { $regex: `^${filters.area.trim()}$`, $options: "i" };
 if (filters.city)
   matchQuery["address.city"] = { $regex: `^${filters.city.trim()}$`, $options: "i" };
     if (filters.userType) {
@@ -617,7 +632,7 @@ const isAdmin =
       if (req.files && req.files.length > 0) {
 
         for (const file of req.files) {
-  console.log("===============");
+    console.log("===============");
     console.log("Name:", file.originalname);
     console.log("Mime:", file.mimetype);
     console.log("Field:", file.fieldname);
@@ -644,6 +659,9 @@ const isAdmin =
       // ADDRESS
 
       const addressUpdate = {
+         addressLine1: parsedAddress.addressLine1 || "",
+
+    addressLine2:parsedAddress.addressLine2 || "",
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
@@ -814,6 +832,8 @@ console.log("certificatesArr =", certificatesArr);
       // UPDATE ADDRESS
 
       const addressUpdate = {
+        addressLine1: parsedAddress.addressLine1 || "",
+        addressLine2:parsedAddress.addressLine2 || "",
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
