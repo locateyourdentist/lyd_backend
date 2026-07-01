@@ -385,8 +385,19 @@ exports.getAllUserDetails = async (req, res) => {
     // if (filters.city) matchQuery["address.city"] = filters.city;
 if (filters.state)
   matchQuery["address.state"] = { $regex: `^${filters.state.trim()}$`, $options: "i" };
-if (filters.district)
-  matchQuery["address.district"] = { $regex: `^${filters.district.trim()}$`, $options: "i" };
+// if (filters.district)
+//   matchQuery["address.district"] = { $regex: `^${filters.district.trim()}$`, $options: "i" };
+
+if (filters.district) {
+  if (Array.isArray(filters.district)) {
+    matchQuery["address.district"] = { $in: filters.district };
+  } else {
+    matchQuery["address.district"] = {
+      $regex: `^${filters.district.trim()}$`,
+      $options: "i"
+    };
+  }
+}
 if (filters.area) {
   if (Array.isArray(filters.area)) {
     matchQuery["address.area"] = { $in: filters.area };
@@ -397,16 +408,26 @@ if (filters.area) {
     };
   }
 }
+if (filters.city) {
+  if (Array.isArray(filters.city)) {
+    matchQuery["address.city"] = { $in: filters.city };
+  } else {
+    matchQuery["address.city"] = {
+      $regex: `^${filters.city.trim()}$`,
+      $options: "i"
+    };
+  }
+}
 // if (filters.area)
 //   matchQuery["address.area"] = { $regex: `^${filters.area.trim()}$`, $options: "i" };
-if (filters.city)
-  matchQuery["address.city"] = { $regex: `^${filters.city.trim()}$`, $options: "i" };
-    if (filters.userType) {
-      matchQuery.userType = {
-        $regex: `^${filters.userType.trim()}$`,
-        $options: "i",
-      };
-    }
+// if (filters.city)
+//   matchQuery["address.city"] = { $regex: `^${filters.city.trim()}$`, $options: "i" };
+//     if (filters.userType) {
+//       matchQuery.userType = {
+//         $regex: `^${filters.userType.trim()}$`,
+//         $options: "i",
+//       };
+//     }
 
     let pipeline = [];
 
@@ -2413,579 +2434,121 @@ exports.job_email = async (req, res) => {
     return res.send({ status: "error", message: "Internal Server Error" });
   }
 };
-exports.postImagesAdmin = async (req, res) => {
-  try {
-    const {
-      userId,
-      userType,
-      imageId,
-     // preference,
-      startDate,
-      endDate,
-      isActive
-    } = req.body;
+    exports.postImagesAdmin = async (req, res) => {
+      try {
+        const {
+          userId,
+          userType,
+          imageId,
+        // preference,
+          startDate,
+          endDate,
+          isActive
+        } = req.body;
 
-    if (!userId || !userType) {
-      return res.json({
-        status: "error",
-        message: "Missing userId or userType"
-      });
-    }
+        if (!userId || !userType) {
+          return res.json({
+            status: "error",
+            message: "Missing userId or userType"
+          });
+        }
 
-    const file =
-      req.file || (req.files?.length ? req.files[0] : null);
+        const file =
+          req.file || (req.files?.length ? req.files[0] : null);
 
-    let record = await uploadAdminImages.findOne({ userId, userType });
+        let record = await uploadAdminImages.findOne({ userId, userType });
 
-    if (!record) {
-      record = await uploadAdminImages.create({
-        userId,
-        userType,
-        posterImages: []
-      });
-    }
+        if (!record) {
+          record = await uploadAdminImages.create({
+            userId,
+            userType,
+            posterImages: []
+          });
+        }
 
-    // CREATE
-    if (!imageId || imageId === "0" || imageId === "") {
+        // CREATE
+        if (!imageId || imageId === "0" || imageId === "") {
 
-      if (!file) {
+          if (!file) {
+            return res.json({
+              status: "error",
+              message: "Image required"
+            });
+          }
+
+          const url = await uploadToS3(file);
+
+          const newImage = {
+            path: url,
+          // preference: preference ? Number(preference) : 0,
+            startDate: startDate || "",
+            endDate: endDate || "",
+            isActive:
+              isActive === true ||
+              isActive === "true",
+            uploadedAt: new Date()
+          };
+
+          record.posterImages.push(newImage);
+
+          await record.save();
+
+          return res.json({
+            status: "success",
+            message: "Created",
+            data: record.posterImages.at(-1)
+          });
+        }
+        const image = record.posterImages.id(imageId);
+        if (!image) {
+          return res.json({
+            status: "error",
+            message: "Image not found"
+          });
+        }
+        if (file) {
+          image.path = await uploadToS3(file);
+        }
+
+        // if (preference !== undefined) {
+        //   image.preference = Number(preference);
+        // }
+
+        if (startDate !== undefined) {
+          image.startDate = startDate;
+        }
+
+        if (endDate !== undefined) {
+          image.endDate = endDate;
+        }
+
+        if (isActive !== undefined) {
+          image.isActive =
+            isActive === true ||
+            isActive === "true";
+        }
+
+        image.uploadedAt = new Date();
+
+        await record.save();
+
+        return res.json({
+          status: "success",
+          message: "Updated",
+          data: image
+        });
+
+      } catch (err) {
+        console.error(err);
+
         return res.json({
           status: "error",
-          message: "Image required"
+          message: err.message
         });
       }
-
-      const url = await uploadToS3(file);
-
-      const newImage = {
-        path: url,
-       // preference: preference ? Number(preference) : 0,
-        startDate: startDate || "",
-        endDate: endDate || "",
-        isActive:
-          isActive === true ||
-          isActive === "true",
-        uploadedAt: new Date()
-      };
-
-      record.posterImages.push(newImage);
-
-      await record.save();
-
-      return res.json({
-        status: "success",
-        message: "Created",
-        data: record.posterImages.at(-1)
-      });
-    }
-    const image = record.posterImages.id(imageId);
-    if (!image) {
-      return res.json({
-        status: "error",
-        message: "Image not found"
-      });
-    }
-    if (file) {
-      image.path = await uploadToS3(file);
-    }
-
-    // if (preference !== undefined) {
-    //   image.preference = Number(preference);
-    // }
-
-    if (startDate !== undefined) {
-      image.startDate = startDate;
-    }
-
-    if (endDate !== undefined) {
-      image.endDate = endDate;
-    }
-
-    if (isActive !== undefined) {
-      image.isActive =
-        isActive === true ||
-        isActive === "true";
-    }
-
-    image.uploadedAt = new Date();
-
-    await record.save();
-
-    return res.json({
-      status: "success",
-      message: "Updated",
-      data: image
-    });
-
-  } catch (err) {
-    console.error(err);
-
-    return res.json({
-      status: "error",
-      message: err.message
-    });
-  }
-};
+    };
  
-  // exports.postImagesAdmin = async (req, res) => {
-  // try {
-  //   const {
-  //     userId,
-  //     userType,
-  //     imageId,
-  //     preference,
-  //     startDate,
-  //     endDate,
-  //     isActive
-  //   } = req.body;
-
-  //   if (!userId || !userType) {
-  //     return res.json({
-  //       status: "error",
-  //       message: "Missing userId or userType"
-  //     });
-  //   }
-
-  //   const file =
-  //     req.file || (req.files?.length ? req.files[0] : null);
-
-  //   let record = await uploadAdminImages.findOne({ userId, userType });
-
-  //   if (!record) {
-  //     record = await uploadAdminImages.create({
-  //       userId,
-  //       userType,
-  //       posterImages: []
-  //     });
-  //   }
-
-  //   if (!imageId || imageId === "0") {
-  //     if (!file) {
-  //       return res.json({
-  //         status: "error",
-  //         message: "Image required"
-  //       });
-  //     }
-
-  //     const url = await uploadToS3(file);
-
-  //     const newImage = {
-  //       path: url,
-  //      // preference: preference ? Number(preference) : 0,
-  //       startDate: startDate || "",
-  //       endDate: endDate || "",
-  //       isActive: isActive === "true",
-  //       uploadedAt: new Date()
-  //     };
-
-  //     record.posterImages.push(newImage);
-  //     await record.save();
-
-  //     return res.json({
-  //       status: "success",
-  //       message: "Created",
-  //       data: record.posterImages.at(-1)
-  //     });
-  //   }
-
-  //   const image = record.posterImages.id(imageId);
-
-  //   if (!image) {
-  //     return res.json({
-  //       status: "error",
-  //       message: "Image not found"
-  //     });
-  //   }
-
-  //   if (file) {
-  //     image.path = await uploadToS3(file);
-  //   }
-
-  //   if (preference !== undefined && preference !== null)
-  //     image.preference = Number(preference);
-
-  //   if (startDate !== undefined)
-  //     image.startDate = startDate;
-
-  //   if (endDate !== undefined)
-  //     image.endDate = endDate;
-
-  //   if (isActive !== undefined)
-  //     image.isActive = isActive === "true";
-
-  //   image.uploadedAt = new Date();
-
-  //   await record.save();
-
-  //   return res.json({
-  //     status: "success",
-  //     message: "Updated",
-  //     data: image
-  //   });
-
-  // } catch (err) {
-  //   console.error(err);
-  //   return res.json({
-  //     status: "error",
-  //     message: err.message
-  //   });
-  // }
-  // };
-// exports.postImagesAdmin = async (req, res) => {
-//   try {
-//     const {
-//       userId,
-//       userType,
-//       imageId,
-//       preference,
-//       startDate,
-//       endDate,
-//       isActive
-//     } = req.body;
-
-//     if (!userId || !userType) {
-//       return res.send({
-//         status: "error",
-//         message: "Missing userId or userType"
-//       });
-//     }
-
-//     const file =
-//       req.file ||
-//       (req.files && req.files.length > 0 ? req.files[0] : null);
-
-//     const isCreate =
-//       !imageId ||
-//       imageId === "0" ||
-//       imageId === 0;
-
-//     let record = await uploadAdminImages.findOne({ userId, userType });
-
-//     if (!record) {
-//       record = await uploadAdminImages.create({
-//         userId,
-//         userType,
-//         posterImages: []
-//       });
-//     }
-//     if (isCreate) {
-//       if (!file) {
-//         return res.send({
-//           status: "error",
-//           message: "Image file is required for create"
-//         });
-//       }
-
-//       const uploadedUrl = await uploadToS3(file);
-
-//       const newImage = {
-//         path: uploadedUrl,
-//         preference: Number(preference) || 0,
-//         startDate: startDate || "",
-//         endDate: endDate || "",
-//         isActive: String(isActive) === "true",
-//         uploadedAt: new Date()
-//       };
-
-//       record.posterImages.push(newImage);
-//       await record.save();
-
-//       return res.json({
-//         status: "success",
-//         message: "Image created",
-//         data: record.posterImages.at(-1)
-//       });
-//     }
-
-//     if (!mongoose.Types.ObjectId.isValid(imageId)) {
-//       return res.send({
-//         status: "error",
-//         message: "Invalid imageId"
-//       });
-//     }
-
-//     const imageToUpdate = record.posterImages.id(imageId);
-
-//     if (!imageToUpdate) {
-//       return res.send({
-//         status: "error",
-//         message: "Image not found"
-//       });
-//     }
-
-//     if (file) {
-//       const uploadedUrl = await uploadToS3(file);
-//       imageToUpdate.path = uploadedUrl;
-//     }
-
-//     imageToUpdate.preference = Number(preference) ?? imageToUpdate.preference;
-//     imageToUpdate.startDate = startDate ?? imageToUpdate.startDate;
-//     imageToUpdate.endDate = endDate ?? imageToUpdate.endDate;
-//     imageToUpdate.isActive = String(isActive) === "true";
-//     imageToUpdate.uploadedAt = new Date();
-
-//     await record.save();
-
-//     return res.json({
-//       status: "success",
-//       message: "Image updated",
-//       data: imageToUpdate
-//     });
-
-//   } catch (error) {
-//     console.error("UPLOAD ERROR:", error);
-//     return res.send({
-//       status: "error",
-//       message: error.message
-//     });
-//   }
-// };
-
-
-
-// exports.postImagesAdmin = async (req, res) => {
-//   try {
-//     const {
-//       userId,
-//       userType,
-//       imageId,
-//       preference,
-//       startDate,
-//       endDate,
-//       isActive
-//     } = req.body;
-
-//     if (!userId || !userType) {
-//       return res.send({
-//         status: "error",
-//         message: "Missing userId or userType"
-//       });
-//     }
-
-//     let record = await uploadAdminImages.findOne({ userId, userType });
-//     if (!record) {
-//       record = new uploadAdminImages({ userId, userType, posterImages: [] });
-//     }
-
-//     const isCreate = imageId === "0" || imageId === 0;
-//     if (isCreate) {
-//       if (!req.file) {
-//         return res.send({
-//           status: "error",
-//           message: "Image file is required for create"
-//         });
-//       }
-
-//       const uploadedUrl = await uploadToS3(req.file);
-
-//       const newImage = {
-//         path: uploadedUrl,
-//         preference: Number(preference ?? 0),
-//         startDate: startDate || "",
-//         endDate: endDate || "",
-//         isActive: isActive === true || isActive === "true",
-//         uploadedAt: new Date()
-//       };
-
-//       record.posterImages.push(newImage);
-//       await record.save();
-
-//       return res.json({
-//         status: "success",
-//         message: "Image created",
-//         data: record.posterImages.at(-1)
-//       });
-//     }
-//     if (!mongoose.Types.ObjectId.isValid(imageId)) {
-//       return res.send({
-//         status: "error",
-//         message: "Invalid imageId"
-//       });
-//     }
-
-//     const imageToUpdate = record.posterImages.id(imageId);
-//     if (!imageToUpdate) {
-//       return res.send({
-//         status: "error",
-//         message: "Image not found"
-//       });
-//     }
-
-//     if (req.file) {
-//       // if (imageToUpdate.path) {
-//       //   await deleteFromS3(imageToUpdate.path);
-//       // }
-//       const uploadedUrl = await uploadToS3(req.file);
-//       imageToUpdate.path = uploadedUrl;
-//     }
-
-//     imageToUpdate.preference = Number(preference ?? imageToUpdate.preference);
-//     imageToUpdate.startDate = startDate ?? imageToUpdate.startDate;
-//     imageToUpdate.endDate = endDate ?? imageToUpdate.endDate;
-//     imageToUpdate.isActive = isActive === true || isActive === "true";
-//     imageToUpdate.uploadedAt = new Date();
-
-//     await record.save();
-
-//     return res.json({
-//       status: "success",
-//       message: "Image updated",
-//       data: imageToUpdate
-//     });
-
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({
-//       status: "error",
-//       message: error.message
-//     });
-//   }
-// };
-
-// exports.postImagesAdmin = async (req, res) => {
-//   try {
-//     const { userId, userType, imageId, preference, startDate, endDate, isActive } = req.body;
-
-//     if (!userId || !userType) {
-//       return res.status(400).send({ status: "error", message: "Missing userId or userType" });
-//     }
-
-//     // Find existing record
-//     let record = await uploadAdminImages.findOne({ userId, userType });
-//     if (!record) {
-//       record = new uploadAdminImages({ userId, userType, posterImages: [] });
-//     }
-
-//     // If updating existing image
-//     let imageToUpdate = null;
-//     if (imageId && mongoose.Types.ObjectId.isValid(imageId)) {
-//       imageToUpdate = record.posterImages.id(imageId);
-//     }
-
-//     if (imageToUpdate) {
-//       if (req.file) {
-//         // Delete old image from S3 if exists
-//         if (imageToUpdate.path) {
-//           await deleteFromS3(imageToUpdate.path);
-//         }
-//         // Upload new file to S3
-//         const uploadedUrl = await uploadToS3(req.file);
-//         imageToUpdate.path = uploadedUrl; // store string, not array
-//       }
-
-//       // Update other fields
-//       imageToUpdate.preference = Number(preference ?? 0);
-//       imageToUpdate.startDate = startDate || "";
-//       imageToUpdate.endDate = endDate || "";
-//       imageToUpdate.isActive = isActive === "true" || isActive === true;
-//       imageToUpdate.uploadedAt = new Date();
-
-//       await record.save();
-//       return res.json({ status: "success", message: "Image updated", data: imageToUpdate });
-//     }
-
-//     // Creating a new image
-//     if (!req.file) {
-//       return res.status(400).send({ status: "error", message: "Image file is required" });
-//     }
-
-//     // Upload to S3
-//     const uploadedUrl = await uploadToS3(req.file);
-
-//     const newImage = {
-//       path: uploadedUrl, 
-//       preference: Number(preference ?? 0),
-//       startDate: startDate || "",
-//       endDate: endDate || "",
-//       isActive: isActive === "true" || isActive === true,
-//       uploadedAt: new Date(),
-//     };
-
-//     record.posterImages.push(newImage);
-//     await record.save();
-
-//     return res.json({ status: "success", message: "Image uploaded", data: newImage });
-
-//   } catch (err) {
-//     console.error(err);
-//     return res.status(500).send({ status: "error", message: err.message });
-//   }
-// };
-
-//old multer code
-//   exports.postImagesAdmin = async (req, res) => {
-//   try {
-//     const { userId, userType, imageId, preference, startDate, endDate, isActive } = req.body;
-    
-//     if (!userId || !userType) {
-//       return res.send({ status: "error", message: "Missing userId or userType" });
-//     }
-
-//     let record = await uploadAdminImages.findOne({ userId, userType });
-//     if (!record) {
-//       record = new uploadAdminImages({ userId, userType, posterImages: [] });
-//     }
-
-//     let imageToUpdate = null;
-
-//     if (imageId && mongoose.Types.ObjectId.isValid(imageId)) {
-//       imageToUpdate = record.posterImages.id(imageId);
-//     }
-
-//     // UPDATE
-//     if (imageToUpdate) {
-//       if (req.file) {
-//         if (imageToUpdate.path && fs.existsSync(imageToUpdate.path)) {
-//           fs.unlinkSync(imageToUpdate.path);
-//         }
-//         imageToUpdate.path = req.file.path;
-//       }
-
-//       imageToUpdate.preference = Number(preference ?? 0);
-//       imageToUpdate.startDate = startDate || "";
-//       imageToUpdate.endDate = endDate || "";
-//       imageToUpdate.isActive = isActive === 'true' || isActive === true;
-//       imageToUpdate.uploadedAt = new Date();
-
-//       await record.save();
-
-//       return res.json({ status: "success", message: "Image updated", data: imageToUpdate });
-//     }
-        
-//  // CREATE
-//     if (!req.file) {
-//       return res.send({ status: "error", message: "Image file is required" });
-//     }
-//     const posterImages1 = [];
-
-//      if (req.file) {
-//     const uploadedUrl = await uploadToS3(req.file); 
-//     console.log(`ghhg${uploadedUrl}`)
-//     if (req.file.fieldname=='posterImages') {
-//         posterImages1.push(uploadedUrl);
-//     }
-//   }
-//     const newImage = {
-//       // path: req.file.path,
-//             path: posterImages1,
-//       preference: Number(preference ?? 0),
-//       startDate: startDate || "",
-//       endDate: endDate || "",
-//       isActive: isActive === 'true' || isActive === true,
-//       uploadedAt: new Date(),
-//     };
-
-//     record.posterImages.push(newImage);
-//     await record.save();
-
-//     res.json({ status: "success", message: "Image uploaded", data: newImage });
-
-//   } catch (err) {
-//     console.error(err);
-//     res.send({ status: "error", message: err.message });
-//   }
-// };
-
+  
 const expirePosterImagesIfNeeded = async () => {
   try {
     const now = new Date();

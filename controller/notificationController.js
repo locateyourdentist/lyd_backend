@@ -1374,8 +1374,6 @@ const createAndSendNotification = async (
     click_action: "FLUTTER_NOTIFICATION_CLICK",
     screen: "home",
     
-    // 💡 FIX 3: Give the data object unique values so the background 
-    // handlers don't assume the payloads are identical duplicates.
     recipientId: receiverUserId, 
   },
 };
@@ -1404,7 +1402,7 @@ const createAndSendNotification = async (
   );
 };
 
-exports.createNotification = async (req, res) => {
+  exports.createNotification = async (req, res) => {
   try {
     const {
       userId,
@@ -1433,9 +1431,6 @@ exports.createNotification = async (req, res) => {
       console.log("S3 URL:", notificationImage);
     }
 
-    // ------------------------------------------
-    // PATHWAY A: Request coming from / targeted to superAdmin
-    // ------------------------------------------
     if (userType === "superAdmin") {
       const query = { userType: "superAdmin" };
 
@@ -1473,10 +1468,6 @@ exports.createNotification = async (req, res) => {
         message: `Notification sent to ${users.length} users`
       });
     }
-
-    // ------------------------------------------
-    // PATHWAY B: Standard Users / System Admin Requests (e.g., "Dental Lab")
-    // ------------------------------------------
     const receiverMap = new Map();
 
     if (isAdmin === true || isAdmin === "true") {
@@ -1499,8 +1490,6 @@ exports.createNotification = async (req, res) => {
           receiverMap.set(user.userId, user);
         }
       }
-
-      // 2. Query target users matching specified userType (e.g., "Dental Lab")
       if (userType && userType !== "" && userType !== "All") {
         const users = await userModel.find(
           { userType },
@@ -1520,8 +1509,6 @@ exports.createNotification = async (req, res) => {
         message: "No users found"
       });
     }
-
-    // Loop through ALL compiled receivers to write and broadcast alerts
     for (const receiver of receivers) {
       await createAndSendNotification(
         receiver.userId,
@@ -1534,9 +1521,8 @@ exports.createNotification = async (req, res) => {
         city,
         area
       );
-    } // <--- FIXED: Loop finishes running safely here!
+    } 
 
-    // HTTP Success response triggered ONLY after the loop is complete
     return res.send({
       status: "success",
       message: `Notification sent to ${receivers.length} users`,
@@ -1905,9 +1891,8 @@ exports.getstates=async (req, res) => {
   try{
   //const states = await Location.find({state:1})
  const state = await LocationModel.distinct("state");
-const States = state.sort((a, b) => a.localeCompare(b));
-
-//return sortedStates;
+ const States = state.sort((a, b) => a.localeCompare(b));
+ //return sortedStates;
 console.log("States array:", state);
 console.log("Total states:", States.length);
   //distinct("state");
@@ -1919,53 +1904,116 @@ console.log("Total states:", States.length);
 };
 
 // Get districts by state
- exports.getdistrict = async (req, res) => {
+//  exports.getdistrict = async (req, res) => {
+//   try {
+//     const stateName = req.params.state.trim();
+//     console.log("Requested state:", stateName);
+
+//     const districts = await LocationModel.distinct("district", {
+//       state: { $regex: `^${stateName}$`, $options: "i" }
+//     });
+
+//     console.log("Districts:", districts);
+
+//     res.json(districts);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ status: "error", message: err.message });
+//   }
+// };
+exports.getdistrict = async (req, res) => {
   try {
-    const stateName = req.params.state.trim();
-    console.log("Requested state:", stateName);
+    let { state } = req.body;
+
+    if (!Array.isArray(state)) {
+      state = [state];
+    }
+
+    const regex = state.map(
+      s => new RegExp(`^${s.trim()}$`, "i")
+    );
 
     const districts = await LocationModel.distinct("district", {
-      state: { $regex: `^${stateName}$`, $options: "i" }
+      state: { $in: regex }
     });
 
-    console.log("Districts:", districts);
+    return res.json({
+      districts,
+    });
 
-    res.json(districts);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ status: "error", message: err.message });
+  } catch (error) {
+    return res.send({
+      status: "error",
+      message: error.message,
+    });
   }
 };
-
 // Get sub-districts by district
-exports.getsubdistricts=async (req, res) => {
-  try{
-    const districtName = req.params.district.trim();
-    console.log("Requested district:", districtName);
-  const subDistricts = await LocationModel.distinct("subDistrict", {
-  district: { $regex: `^${districtName}$`, $options: "i" }
+// exports.getsubdistricts=async (req, res) => {
+//   try{
+//     const districtName = req.params.district.trim();
+//     console.log("Requested district:", districtName);
+//   const subDistricts = await LocationModel.distinct("subDistrict", {
+//   district: { $regex: `^${districtName}$`, $options: "i" }
 
-  });
-  res.send(subDistricts);
-}
-  catch (error) {
-    return res.send({ status: "error", message: `data not found error${error.message}` })
+//   });
+//   res.send(subDistricts);
+// }
+//   catch (error) {
+//     return res.send({ status: "error", message: `data not found error${error.message}` })
+//   }
+// };
+
+exports.getsubdistricts = async (req, res) => {
+  try {
+    let { district } = req.body;
+
+    if (!Array.isArray(district)) {
+      district = [district];
+    }
+
+    const regex = district.map(
+      d => new RegExp(`^${d.trim()}$`, "i")
+    );
+
+    const subDistricts = await LocationModel.distinct("subDistrict", {
+      district: { $in: regex }
+    });
+
+    return res.json({subDistricts,
+    });
+
+  } catch (error) {
+    return res.send({
+      status: "error",
+      message: error.message,
+    });
   }
 };
 
+exports.getvillages = async (req, res) => {
+  try {
+    let { subDistrict } = req.body;
 
-exports.getvillages= async (req, res) => {
-try{
-  const villageName = req.params.subDistrict.trim();
-  console.log("Requested village:", villageName);
-  const villages = await LocationModel.distinct("village", {
-  subDistrict: { $regex: `^${villageName}$`, $options: "i" }
-  });
-  console.log(`ddfc village$`)
-  res.send(villages);
+    if (!Array.isArray(subDistrict)) {
+      subDistrict = [subDistrict];
+    }
 
-}
-  catch (error) {
-    return res.send({ status: "error", message: `data not found error ${error.message}` })
+    const regex = subDistrict.map(
+      s => new RegExp(`^${s.trim()}$`, "i")
+    );
+
+    const villages = await LocationModel.distinct("village", {
+      subDistrict: { $in: regex }
+    });
+
+    return res.json({ villages,
+    });
+
+  } catch (error) {
+    return res.send({
+      status: "error",
+      message: error.message,
+    });
   }
 };
