@@ -636,16 +636,30 @@ const isAdmin =
         }
       }
       const hashedPassword = await bcryptjs.hash(password, 10);
-      const counter = await userIds.findOneAndUpdate(
-        { id: "userId" },
-        { $inc: { userId: 1 } },
-        { upsert: true, new: true }
-      );
+      // const counter = await userIds.findOneAndUpdate(
+      //   { id: "userId" },
+      //   { $inc: { userId: 1 } },
+      //   { upsert: true, new: true }
+      // );
 
-      const newUserId = `LYD${counter.userId}`;
+      // const newUserId = `LYD${counter.userId}`;
 
-      // FILES
+      const state = parsedAddress.state.trim();
 
+const counter = await userIds.findOneAndUpdate(
+  { state: state },
+  { $inc: { counter: 1 } },
+  { new: true }
+);
+
+if (!counter) {
+  return res.json({
+    status: "error",
+    message: "State not configured"
+  });
+}
+
+const newUserId = `${counter.prefix}${counter.counter}`;
       const images = [];
       const certificates = [];
       const logoImages = [];
