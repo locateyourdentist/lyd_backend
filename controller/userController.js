@@ -422,12 +422,12 @@ if (filters.city) {
 //   matchQuery["address.area"] = { $regex: `^${filters.area.trim()}$`, $options: "i" };
 // if (filters.city)
 //   matchQuery["address.city"] = { $regex: `^${filters.city.trim()}$`, $options: "i" };
-//     if (filters.userType) {
-//       matchQuery.userType = {
-//         $regex: `^${filters.userType.trim()}$`,
-//         $options: "i",
-//       };
-//     }
+    if (filters.userType) {
+      matchQuery.userType = {
+        $regex: `^${filters.userType.trim()}$`,
+        $options: "i",
+      };
+    }
 
     let pipeline = [];
 
@@ -452,7 +452,7 @@ if (filters.city) {
     //   pipeline.push({ $match: matchQuery });
     // }
 if (filters.latitude && filters.longitude) {
-  const distance = filters.distance ? filters.distance : 10;
+  const distance = filters.distance ? filters.distance : 0;
 
   pipeline.push({
     $geoNear: {
@@ -536,7 +536,7 @@ if (filters.latitude && filters.longitude) {
       {
         $sort: {
           planPriority: 1,
-          distance: 1, // if geoNear used
+          distance: 1, 
           _id: -1,
         },
       }
