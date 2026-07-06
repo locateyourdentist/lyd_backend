@@ -29,14 +29,22 @@ const appLogoModel=require('../model/app_logo')
 const serviceModel=require('../model/serviceModel')
 
 
- const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: `${process.env.nodemail_username}`,
-        pass: `${process.env.nodemail_password}`,
-      }
-    });
-
+//  const transporter = nodemailer.createTransport({
+//     service: "gmail",
+//     auth: {
+//         user: `${process.env.nodemail_username}`,
+//         pass: `${process.env.nodemail_password}`,
+//       }
+//     });
+const transporter = nodemailer.createTransport({
+  host: "smtp.resend.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: "resend",
+    pass: process.env.RESEND_API_KEY,
+  },
+});
 //     const transporter = nodemailer.createTransport({
 //   host: "email-smtp.ap-south-1.amazonaws.com",
 //   port: 587,

@@ -8,7 +8,7 @@ const multer = require("multer");
 const multerS3 = require("multer-s3");
 const aws = require("aws-sdk");
 const { upload,uploadToS3 } = require("../file_uploadImage");
-
+const { S3Client } = require("@aws-sdk/client-s3");
 
 router.post('/get_user_details',userController.getAllUserDetails)
 //router.post('/user_register',  upload.fields([{ name: 'image', maxCount: 3 }, {name: 'certificates', maxCount: 3 },{name: 'logoImage', maxCount: 1 } ]), userController.userRegister);
