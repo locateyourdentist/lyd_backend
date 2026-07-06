@@ -452,23 +452,48 @@ if (filters.city) {
     //   pipeline.push({ $match: matchQuery });
     // }
 if (filters.latitude && filters.longitude) {
-  const distance = filters.distance ? filters.distance : 0;
+  //const distance = filters.distance ? filters.distance : 0;
+const distance = Number(filters.distance) || 0;
 
+  // pipeline.push({
+  //   $geoNear: {
+  //     near: {
+  //       type: "Point",
+  //       coordinates: [
+  //         Number(filters.longitude),
+  //         Number(filters.latitude),
+  //       ],
+  //     },
+  //     distanceField: "distance",
+  //     maxDistance: distance * 1000,
+  //     spherical: true,
+  //   },
+  // });
   pipeline.push({
-    $geoNear: {
-      near: {
-        type: "Point",
-        coordinates: [
-          Number(filters.longitude),
-          Number(filters.latitude),
-        ],
-      },
-      distanceField: "distance",
-      maxDistance: distance * 1000,
-      spherical: true,
+  $geoNear: {
+    near: {
+      type: "Point",
+      coordinates: [
+        Number(filters.longitude),
+        Number(filters.latitude),
+      ],
     },
-  });
-
+    distanceField: "distance",
+    maxDistance: distance * 1000,
+    spherical: true,
+    query: matchQuery,
+  },
+});
+pipeline.push({
+  $addFields: {
+    distanceKm: {
+      $round: [
+        { $divide: ["$distance", 1000] },
+        2
+      ]
+    }
+  }
+});
 
   if (Object.keys(matchQuery).length) {
     pipeline.push({ $match: matchQuery });
@@ -743,20 +768,20 @@ const newUserId = `${counter.prefix}${counter.counter}`;
     // SAVE USER
      await newUser.save();
      // SEND EMAIL
-   try {
-   const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
-          {
-            userId: newUserId,
-            subject: "New Registration",
-            title: "new",
-            message: "new user added successfully"
-          }
-        );
-       console.log("Mail response:", response.data);
-  } catch (mailError) {
+  //  try {
+  //  const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
+  //         {
+  //           userId: newUserId,
+  //           subject: "New Registration",
+  //           title: "new",
+  //           message: "new user added successfully"
+  //         }
+  //       );
+  //      console.log("Mail response:", response.data);
+  // } catch (mailError) {
 
-        console.log("Mail send failed:", mailError.message);
-      }
+  //       console.log("Mail send failed:", mailError.message);
+  //     }
 
     //await sendRegistrationOtp(newUserId);
 

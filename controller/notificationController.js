@@ -1416,15 +1416,12 @@ const createAndSendNotification = async (
       area
     } = req.body;
 
-    // Validation
     if (!userType || !title || !message) {
       return res.send({
         status: "error",
         message: "Missing fields"
       });
     }
-
-    // Handle Optional File Upload to S3
     let notificationImage = "";
     if (req.file) {
       notificationImage = await uploadToS3(req.file);
@@ -1536,302 +1533,6 @@ const createAndSendNotification = async (
     });
   }
 };
-//    exports.createNotification = async (req, res) => {
-//    try {
-//     const { userId, userType, title, message, isAdmin, state, district, city, area } = req.body;
-//     if (!userId || !userType || !title || !message) {
-//       return res.send({ status: "error", message: "missing field" });
-//     }
-
-//     const sender = await userModel.findOne({ userId }, { address: 1 }).lean();
-//     if (!sender) {
-//       return res.send({ status: "error", message: "no user found" });
-//     }
-//     let notificationImage = "";
-//     if (req.file) {
-//       notificationImage = await uploadToS3(req.file);
-//     }    //req.file ? `${process.env.base_url}notificationImage/${req.file.filename}` : "";
-//     // If user is NOT admin or superAdmin, send notification to admins
-    
-//         //if (req.user.userType !== "admin" && req.user.userType !== "superAdmin") {
-//     if (userType !== "admin" && userType !== "superAdmin") {
-//       console.log(`xbbv${state}`)
-//       const admins = await userModel.find({ userType: "admin",  "address.state": state }, { userId: 1 }).lean();
-//       //const admins = await userModel.find({ userType: "admin", "address.state": state,"address.district":district }, { userId: 1 }).lean();
-//       const superAdmins = await userModel.find({ userType: "superAdmin", "address.state": state }, { userId: 1 }).lean();
-
-//       const receiverMap = new Map();
-//       // [...admins, ...superAdmins].forEach(u => {
-//       //   if (u.userId !== userId) {
-//       //     receiverMap.set(u.userId, u);
-//       //   }
-//       // });
-//       [...admins, ...superAdmins].forEach(u => {
-//       receiverMap.set(u.userId, u);
-//       });
-//       const receivers = [...receiverMap.values()];
-//       if (!receivers.length) {
-//         console.log('"No admin found')
-//         return res.send({ status: "error", message: "No admin found" });
-//       }
-//       if (receivers.length>0) {
-
-//       // Send notifications to each receiver
-//       for (const receiver of receivers) {
-//         await notificationModel.create({
-//           userId: receiver.userId,
-//           userType: userType,
-//           notificationImage:notificationImage??"",
-//           // 'https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA',
-//           //notificationImage || "",
-//           title,
-//           message,
-//           state,
-//           district,
-//           city,
-//           area,
-//           read: false,
-//           isActive: true,
-//         });
-
-//         const tokens = await fcmModel.find({ userId: receiver.userId }, { fcmToken: 1, _id: 0 }).lean();
-//         if (!tokens.length) continue;
-
-//         for (const t of tokens) {
-//           // const payload = {
-//           //   token: t.fcmToken,
-//           //   notification: { title, body: message },
-//           //   android: { notification: {} },
-//           //   apns: { payload: { aps: { "mutable-content": 1 } } },
-//           //   data: { click_action: "FLUTTER_NOTIFICATION_CLICK", screen: "home" },
-//           // };
-//   const payload = {
-//   token: t.fcmToken,
-//   notification: {
-//     title,
-//     body: message,
-//     image: notificationImage,
-//   },
-//   android: {
-//     notification: {
-//       image: notificationImage, 
-//     },
-//   },
-//   apns: {
-//     payload: {
-//       aps: {
-//         "mutable-content": 1,
-//       },
-//     },
-//     fcm_options: {
-//       image: notificationImage, 
-//     },
-//   },
-//   data: {
-//     click_action: "FLUTTER_NOTIFICATION_CLICK",
-//     screen: "home",
-//   },
-// };
-
-//           // if (notificationImage) {
-//           //   payload.notification.image = notificationImage;
-//           //   payload.android.notification.notificationImage = 'payload.android.notification.notificationImage = notificationImage';
-//           //   // payload.android.notification.imageUrl = notificationImage;
-//           //   payload.apns.fcm_options = { image: notificationImage };
-//           // }
-//           if (notificationImage) {
-//           payload.notification.image = notificationImage;
-//           payload.android.notification = {image: notificationImage,};
-//           payload.apns.fcm_options = {image: notificationImage,};
-//           }
-
-//           try {
-//             await firebaseAdmin.messaging().send(payload);
-//           } catch (err) {
-//             console.error("FCM error:", err.message);
-//             if (err.code === "messaging/registration-token-not-registered") {
-//               await fcmModel.deleteOne({ fcmToken: t.fcmToken });
-//             }
-//           }
-//         }
-//       }
-      
-//     await notificationModel.create({
-//       userId,
-//       userType,
-//       title,
-//       message,
-//       notificationImage: notificationImage,
-//       //'https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA',
-//       //notificationImage || "",
-//       state,
-//       district,
-//       city,
-//       area,
-//       read: false,
-//       isActive: true,
-//     });
-
-//     const tokens = await fcmModel.find({ userId }, { fcmToken: 1, _id: 0 }).lean();
-//     if (!tokens.length) {
-//       return res.send({ status: "success", message: "Notification saved but no FCM token found" });
-//     }
-//     //  for (const t of tokens) {
-//     //   const payload = {
-//     //     token: t.fcmToken,
-//     //     notification: { title, body: message },
-//     //     android: { notification: {} },
-//     //     apns: { payload: { aps: { "mutable-content": 1 } } },
-//     //     data: { click_action: "FLUTTER_NOTIFICATION_CLICK", screen: "home" },
-//     //   };
-
-//     //   if (notificationImage) {
-//     //     payload.notification.image = notificationImage;
-//     //     payload.android.notification.imageUrl = notificationImage;
-//     //             payload.apns.fcm_options = { image: 'https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA' };
-//     //     // payload.apns.fcm_options = { image: notificationImage };
-//     //   }
-//     for (const t of tokens) {
-//     const payload = {
-//     token: t.fcmToken,
-//     notification: {
-//       title,
-//       body: message,
-//     },
-//     android: {
-//       notification: {},
-//     },
-//     apns: {
-//       payload: {
-//         aps: {
-//           "mutable-content": 1,
-//         },
-//       },
-//     },
-//     data: {
-//       click_action: "FLUTTER_NOTIFICATION_CLICK",
-//       screen: "home",
-//     },
-//   };
-// function isValidHttpsUrl(url) {
-//   try {
-//     const parsed = new URL(url);
-//     return parsed.protocol === "https:";
-//   } catch (err) {
-//     return false;
-//   }
-// }
-//   if (notificationImage && isValidHttpsUrl(notificationImage)) {
-//     payload.android.notification.notificationImage = notificationImage;
-
-//     payload.apns.fcm_options = {
-//       image: notificationImage,
-//     };
-//   }
-//   console.log("FCM Payload:", JSON.stringify(payload, null, 2));
-//   try {
-//         await firebaseAdmin.messaging().send(payload);
-//       } catch (err) {
-        
-//         console.error("FCM error:", err.message);
-//       }
-//     }
-  
-//       return res.send({
-//         status: "success",
-//         message: `Notification sent to ${receivers.length} admins`,
-//       });
-//     }
-//     }
-//     else if (userType == "admin" || userType == "superAdmin") {
-//       // const admins = await userModel.find({ userType: userType, "address.state": state,"address.district": district,"address.city": city }, { userId: 1 }).lean();
-//       //let query = userType === "All" ? {} : { userType };
-//       const query = {};
-
-//      if (userType && userType !== "All") {
-//      query.userType = userType;
-//      }
-//       if (state) query["address.state"] = state;
-//      // if (district) query["address.district"] = { $in: Array.isArray(district) ? district : [district] };
-//      // if (city) query["address.city"] = city;
-//       const admins = await userModel.find(query, { userId: 1 }).lean();
-//       const receiverMap = new Map();
-//       // [...admins].forEach(u => {
-//       //   if (u.userId !== userId) {
-//       //     receiverMap.set(u.userId, u);
-//       //   }});
-//       admins.forEach(u => {
-//       receiverMap.set(u.userId, u); });
-//       let notificationImage;
-//  if (req.file) {
-//       notificationImage = await uploadToS3(req.file);
-//     } 
-//       const receivers = [...receiverMap.values()];
-//       if (!receivers.length) {
-//         return res.send({ status: "error", message: "No user list found" });
-//       }
-//       for (const receiver of receivers) {
-//         await notificationModel.create({
-//           userId: receiver.userId,
-//           userType: userType,
-//           notificationImage:notificationImage,
-//           //`https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA`,
-//           // notificationImage|| "",
-//           title,
-//           message,
-//           state,
-//           district,
-//           city,
-//           area,
-//           read: false,
-//           isActive: true,
-//         });
-
-//         const tokens = await fcmModel.find({ userId: receiver.userId }, { fcmToken: 1, _id: 0 }).lean();
-//         if (!tokens.length) continue;
-
-//         for (const t of tokens) {
-//           const payload = {
-//             token: t.fcmToken,
-//             notification: { title, body: message },
-//             android: { notification: {} },
-//             apns: { payload: { aps: { "mutable-content": 1 } } },
-//             data: { click_action: "FLUTTER_NOTIFICATION_CLICK", screen: "home" },
-//           };
-
-//           if (notificationImage) {
-//             payload.notification.image = `https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA`,
-//             //notificationImage;
-//                        // payload.android.notification.imageUrl = 'payload.android.notification.imageUrl = notificationImage';
-//             // payload.android.notification.imageUrl = notificationImage;
-//             payload.apns.fcm_options = { image: `https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA`,
-//               };
-//           }
-//           try {
-//             await firebaseAdmin.messaging().send(payload);
-//           } catch (err) {
-//             console.error("FCM error:", err.message);
-//             if (err.code === "messaging/registration-token-not-registered") {
-//               await fcmModel.deleteOne({ fcmToken: t.fcmToken });
-//             }
-//           }
-//         }
-//       }
-//     // successLogger.info(`notification sent successfully. user ID: ${req.user.userId}`);
-
-//       return res.send({
-//         status: "success",
-//         message: `Notification sent to ${receivers.length} admins`,
-//       });
-//     }
-//     // successLogger.info(`notification created successfully. user ID: ${req.user.userId}`);
-//     return res.send({ status: "success", message: "Notification sent successfully" });
-//   } catch (error) {
-//     console.error(error);
-//     //  errorLogger.error(`notification creation failed: ${error.message}`);
-//     return res.send({ status: "error", message: `notification not created error ${error.message}` });
-//   }
-//  };
 
   exports.updateNotification = async (req, res) => {
   try {
@@ -1893,8 +1594,8 @@ exports.getstates=async (req, res) => {
  const state = await LocationModel.distinct("state");
  const States = state.sort((a, b) => a.localeCompare(b));
  //return sortedStates;
-console.log("States array:", state);
-console.log("Total states:", States.length);
+ console.log("States array:", state);
+ console.log("Total states:", States.length);
   //distinct("state");
   res.json(States);
   }
@@ -1948,21 +1649,6 @@ exports.getdistrict = async (req, res) => {
     });
   }
 };
-// Get sub-districts by district
-// exports.getsubdistricts=async (req, res) => {
-//   try{
-//     const districtName = req.params.district.trim();
-//     console.log("Requested district:", districtName);
-//   const subDistricts = await LocationModel.distinct("subDistrict", {
-//   district: { $regex: `^${districtName}$`, $options: "i" }
-
-//   });
-//   res.send(subDistricts);
-// }
-//   catch (error) {
-//     return res.send({ status: "error", message: `data not found error${error.message}` })
-//   }
-// };
 
 exports.getsubdistricts = async (req, res) => {
   try {

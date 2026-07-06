@@ -73,129 +73,47 @@ exports.createContactRequest = async (req, res) => {
     });
   }
 };
-// exports.createContactDetailsStateWise = async (req, res) => {
-//   try {
-//     const {
-//       userId,name,state,whatsapp,email,
-//       mobileNumber,
-//       district,
-//       city,
-//     } = req.body;
 
-//     if (
-//       !userId ||
-//       !name ||
-//       !whatsapp ||
-//       !email ||
-//       !mobileNumber||!state||!district
-//     ) {
-//       return res.status({
-//         status: "error",
-//         message: "Missing required fields",
-//       });
-//     }
-//     let uploadedUrls = [];
-//     if (req.files && req.files.length > 0) {
-//       for (const file of req.files) {
-//         const uploadedUrl = await uploadToS3(file);
-//         uploadedUrls.push(uploadedUrl);
-//       }
-//     }
-//     //const contactImage = req.file? `contactImage/${req.file.filename}`: "";
+  exports.createContactDetailsStateWise = async (req, res) => {
+    try {
+      const { userId, details } = req.body;
 
-//     const contact = new contactStateWise({userId,name,state,whatsapp,email,
-//       mobileNumber,
-//       district, city,    });
+      if (!userId || !details || !Array.isArray(details) || details.length === 0) {
+        return res.send({ status: "error", message: "userId and details array required" });
+      }
 
-//     const savedContact = await contact.save();
+      const updated = await contactStateWise.findOneAndUpdate(
+        { userId },
+        { $set: { details: details } }, 
+        { upsert: true, new: true }
+      );
 
-//     res.send({
-//       status: "success",
-//       message: "Contact details saved successfully",
-//       data: savedContact,
-//     });
-//   } catch (error) {
-//     res.send({
-//       status: "error",
-//       message: error.message,
-//     });
-//   }
-// };
-exports.createContactDetailsStateWise = async (req, res) => {
-  try {
-    const { userId, details } = req.body;
-
-    if (!userId || !details || !Array.isArray(details) || details.length === 0) {
-      return res.send({ status: "error", message: "userId and details array required" });
+      res.send({
+        status: "success",
+        message: "Contacts saved successfully",
+        data: updated,
+      });
+    } catch (err) {
+      res.send({ status: "error", message: err.message });
     }
+  };
 
-     const updated = await contactStateWise.findOneAndUpdate(
-      { userId },
-      { $set: { details: details } }, 
-      { upsert: true, new: true }
-    );
+  exports.getAllContactDetails = async (req, res) => {
+    try {
+      //   const { userId } = req.body;
+      const allContacts = await contactStateWise.find({}); 
+      if (!allContacts || allContacts.length === 0) {
+        return res.send({ status: "error", message: "No contact details found" });
+      }
 
-    res.send({
-      status: "success",
-      message: "Contacts saved successfully",
-      data: updated,
-    });
-   } catch (err) {
-    res.send({ status: "error", message: err.message });
-  }
-};
-// exports.createContactDetailsStateWise = async (req, res) => {
-//   try {
-//     const { userId, details } = req.body;
-
-//     if (!userId || !details || !Array.isArray(details) || details.length === 0) {
-//       return res.send({ status: "error", message: "userId and details array required" });
-//     }
-
-//      const updated = await contactStateWise.findOneAndUpdate(
-//       { userId },
-//       { $set: { details: details } }, 
-//       { upsert: true, new: true }
-//     );
-//    let detailsObj = {};
-//   if (details) {
-//   if (typeof details === "string") {
-//     try {
-//       detailsObj = JSON.parse(details);
-//     } catch {
-//       detailsObj = { text: details }; 
-//     }
-//   } else {
-//     detailsObj = details;
-//   }
-//     }
-    
-//     res.send({
-//       status: "success",
-//       message: "Contacts saved successfully",
-//       data: updated,
-//     });
-//    } catch (err) {
-//     res.send({ status: "error", message: err.message });
-//   }
-// };
-// Get all contact details
-exports.getAllContactDetails = async (req, res) => {
-  try {
-     //   const { userId } = req.body;
-    const allContacts = await contactStateWise.find({}); 
-    if (!allContacts || allContacts.length === 0) {
-      return res.send({ status: "error", message: "No contact details found" });
+      res.send({
+        status: "success",
+        data: allContacts,
+      });
+    } catch (err) {
+      res.send({ status: "error", message: err.message });
     }
-
-    res.send({
-      status: "success",
-      data: allContacts,
-    });
-  } catch (err) {
-    res.send({ status: "error", message: err.message });
-  }
-};
+  };
 
 exports.gettextEditorContentForAll = async (req, res) => {
   try {
@@ -286,16 +204,16 @@ exports.filterContacts = async (req, res) => {
 
     let filter = {};
 
-    // 🔹 User filters
+    //User filters
     if (receiverUserId) filter.receiverUserId = receiverUserId;
     if (senderUserId) filter.senderUserId = senderUserId;
 
-    // 🔹 Address filters
+    // Address filters
     //if (state) filter["clinicAddress.state"] = state;
    // if (district) filter["clinicAddress.district"] = district;
   //  if (city) filter["clinicAddress.city"] = city;
 
-    // 🔹 Status filter
+    // Status filter
     if (status) filter.status = status;
   
 if (search) {
@@ -357,7 +275,7 @@ exports.getContactsByReceiver = async (req, res) => {
     if (fromDate || toDate) {
       query.createdAt = {};
       if (fromDate) query.createdAt.$gte = new Date(fromDate);
- if (toDate) {
+  if (toDate) {
         const endDate = new Date(toDate);
         endDate.setHours(23, 59, 59, 999); 
         query.createdAt.$lte = endDate;
@@ -442,8 +360,8 @@ exports.getContactsBySender = async (req, res) => {
     let result = contacts.map(contact => ({
       id: contact?._id?.toString(), 
       userId: contact?.receiverUserId || "",
-            userType: contact?.userType || "",
-            name: contact?.Name || "",
+      userType: contact?.userType || "",
+      name: contact?.Name || "",
       email: contact?.email || "",
       mobileNumber: contact?.mobileNumber || "",
       orgName: contact?.clinicName || "",
@@ -520,14 +438,14 @@ exports.getContactsBySender = async (req, res) => {
       message: error.message,
     });
   }
-};
-exports.getPublicContacts = async (req, res) => {
+ };
+
+  exports.getPublicContacts = async (req, res) => {
   try {
     const { fromDate, toDate, search } = req.body;
 
     let filter = {};
 
-    // 📅 Robust Date Filter (Handles empty strings and single dates safely)
     if ((fromDate && fromDate.trim() !== "") || (toDate && toDate.trim() !== "")) {
       filter.createdDate = {};
       
@@ -536,12 +454,10 @@ exports.getPublicContacts = async (req, res) => {
       }
       
       if (toDate && toDate.trim() !== "") {
-        // Sets time boundary to the absolute end of the target day
         filter.createdDate.$lte = new Date(toDate + "T23:59:59.999Z");
       }
     }
 
-    // 🔍 Regex Text Search Block
     if (search && search.trim() !== "") {
       const searchRegex = {
         $regex: search.trim(),
@@ -555,7 +471,6 @@ exports.getPublicContacts = async (req, res) => {
       ];
     }
 
-    // If both parameters are empty, find({}) runs and pulls all items automatically
     const contacts = await publicContactModel
       .find(filter)
       .sort({ createdDate: -1 });
@@ -573,7 +488,8 @@ exports.getPublicContacts = async (req, res) => {
     });
   }
 };
-exports.addtextEditorContentPolicy = async (req, res) => {
+
+  exports.addtextEditorContentPolicy = async (req, res) => {
   try {
     const { category, details } = req.body;
 
@@ -593,8 +509,8 @@ exports.addtextEditorContentPolicy = async (req, res) => {
         parsedDetails = [{ insert: details }];
       }
     }
-console.log("RAW DETAILS:", details);
-console.log("PARSED DETAILS:", parsedDetails);
+  console.log("RAW DETAILS:", details);
+  console.log("PARSED DETAILS:", parsedDetails);
     const updated = await privacyPolicyModel.findOneAndUpdate(
       { category },
       {
@@ -621,38 +537,3 @@ console.log("PARSED DETAILS:", parsedDetails);
     });
   }
 };
-// exports.addtextEditorContentPolicy = async (req, res) => {
-//   try {
-//     const { category, details } = req.body;
-
-//     if (!details || !details || details.length === 0) {
-//       return res.send({ status: "error", message: "userId and details array required" });
-//     }
-//   let detailsObj = {};
-//   if (details) {
-//   if (typeof details === "string") {
-//     try {
-//       detailsObj = JSON.parse(details);
-//     } catch {
-//       detailsObj = { text: details }; 
-//     }
-//   } else {
-//     detailsObj = details;
-//   }
-//     }
-//      const updated = await privacyPolicyModel.findOneAndUpdate(
-//       { category },
-//       { $set: { details: detailsObj, userId:req.user.userId} }, 
-//       { upsert: true, new: true }
-//     );
-   
-    
-//     res.send({
-//       status: "success",
-//       message: "Contacts saved successfully",
-//       data: updated,
-//     });
-//    } catch (err) {
-//     res.send({ status: "error", message: err.message });
-//   }
-// };
