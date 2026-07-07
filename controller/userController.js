@@ -613,7 +613,7 @@ exports.userRegister = async (req, res) => {
 
     let parsedAddress = {};
     let parsedDetails = {};
-const isAdmin =
+   const isAdmin =
   req.body.isAdmin === true ||
   req.body.isAdmin === "true";
     // PARSE JSON
@@ -679,20 +679,24 @@ const isAdmin =
 
       const state = parsedAddress.state.trim();
 
-const counter = await userIds.findOneAndUpdate(
-  { state: state },
-  { $inc: { counter: 1 } },
-  { new: true }
-);
+      const counter = await userIds.findOneAndUpdate(
+        { state: state },
+        { $inc: { counter: 1 } },
+        { new: true }
+      );
 
-if (!counter) {
-  return res.json({
-    status: "error",
-    message: "State not configured"
-  });
-}
+      if (!counter) {
+        return res.json({
+          status: "error",
+          message: "State not configured"
+        });
+      }
 
-const newUserId = `${counter.prefix}${counter.counter}`;
+      const newUserId = `${counter.prefix}${counter.counter}`;
+      console.log("New User ID:", newUserId);
+      console.log("Generated User ID:", newUserId);
+
+console.log("User object:");
       const images = [];
       const certificates = [];
       const logoImages = [];
@@ -724,12 +728,10 @@ const newUserId = `${counter.prefix}${counter.counter}`;
         }
       }
 
-      // ADDRESS
-
       const addressUpdate = {
          addressLine1: parsedAddress.addressLine1 || "",
 
-    addressLine2:parsedAddress.addressLine2 || "",
+       addressLine2:parsedAddress.addressLine2 || "",
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
@@ -747,10 +749,8 @@ const newUserId = `${counter.prefix}${counter.counter}`;
           ]
         };
       }
-
       // CREATE USER
-
-      const newUser = new userModel({
+       const newUser = new userModel({
         userId: newUserId,
         name,
         dob,
@@ -775,6 +775,8 @@ const newUserId = `${counter.prefix}${counter.counter}`;
       });
     // SAVE USER
      await newUser.save();
+     console.log(JSON.stringify(newUser.toObject(), null, 2));
+
      // SEND EMAIL
   //  try {
   //  const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
@@ -801,15 +803,12 @@ const newUserId = `${counter.prefix}${counter.counter}`;
 
         await assignFreePlanToUser(newUserId, userType);
       }
-//add
       return res.json({
         status: "success",
         message: "User registered successfully",
         data: newUser
       });
     }
-
-    // UPDATE USER
     else {
 
       const existingUser = await userModel.findOne({ userId });
