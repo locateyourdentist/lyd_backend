@@ -697,11 +697,8 @@ pipeline.push({
       console.log("New User ID:", newUserId);
       console.log("Generated User ID:", newUserId);
 
-<<<<<<< HEAD
       console.log("User object:");
-=======
-console.log("User object:");
->>>>>>> 532579ae5cf729c64feb9c05adf338a886e6bc8a
+  console.log("User object:");
       const images = [];
       const certificates = [];
       const logoImages = [];
@@ -734,14 +731,13 @@ console.log("User object:");
       }
 
       const addressUpdate = {
-<<<<<<< HEAD
+
         addressLine1: parsedAddress.addressLine1 || "",
         addressLine2:parsedAddress.addressLine2 || "",
-=======
+
          addressLine1: parsedAddress.addressLine1 || "",
 
        addressLine2:parsedAddress.addressLine2 || "",
->>>>>>> 532579ae5cf729c64feb9c05adf338a886e6bc8a
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
@@ -759,11 +755,8 @@ console.log("User object:");
           ]
         };
       }
-<<<<<<< HEAD
     
-=======
       // CREATE USER
->>>>>>> 532579ae5cf729c64feb9c05adf338a886e6bc8a
        const newUser = new userModel({
         userId: newUserId,
         name,
@@ -789,8 +782,6 @@ console.log("User object:");
     // SAVE USER
      await newUser.save();
      console.log(JSON.stringify(newUser.toObject(), null, 2));
-<<<<<<< HEAD
-=======
 
      // SEND EMAIL
   //  try {
@@ -804,7 +795,6 @@ console.log("User object:");
   //       );
   //      console.log("Mail response:", response.data);
   // } catch (mailError) {
->>>>>>> 532579ae5cf729c64feb9c05adf338a886e6bc8a
 
        // SEND EMAIL
       //  try {

@@ -809,7 +809,7 @@ const deactivateBasePlansForUser = async () => {
     console.error("Deactivate Base Plan Error:", err);
   }
 };
-const deactivateAddOnsPlansForUser = async () => {
+  const deactivateAddOnsPlansForUser = async () => {
   const users = await userModel.find({
     "details.plan.addonsPlan.isActive": true
   });
@@ -858,9 +858,9 @@ const deactivateAddOnsPlansForUser = async () => {
       );
     }
   }
-};
+  };
 
-const deactivateJobPlansForUser = async () => {
+ const deactivateJobPlansForUser = async () => {
 
   const users = await userModel.find({
     "details.plan.jobPlan.isActive": true
@@ -1037,58 +1037,59 @@ const deactivateWebinarPlansForUser = async () => {
   
 //   //return deactivatedPlans;
 // };
-const deactivatePostImagePlansForUser = async () => {
+  const deactivatePostImagePlansForUser = async () => {
 
-  const users = await userModel.find({
-    "details.plan.posterPlan.isActive": true
-  });
+    const users = await userModel.find({
+      "details.plan.posterPlan.isActive": true
+    });
 
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
 
-  for (const user of users) {
+    for (const user of users) {
 
-    const posterPlan = user.details?.plan?.posterPlan;
+      const posterPlan = user.details?.plan?.posterPlan;
 
-    if (!posterPlan?.endDate) continue;
+      if (!posterPlan?.endDate) continue;
 
-    const endDate = parseDate(posterPlan.endDate);
+      const endDate = parseDate(posterPlan.endDate);
 
-    if (!endDate) continue;
+      if (!endDate) continue;
 
-    endDate.setUTCHours(0, 0, 0, 0);
+      endDate.setUTCHours(0, 0, 0, 0);
 
-    if (today > endDate) {
+      if (today > endDate) {
 
-      await userModel.updateOne(
-        { _id: user._id },
-        {
-          $set: {
-            "details.plan.posterPlan.isActive": false,
-            updatedDate: new Date()
+        await userModel.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              "details.plan.posterPlan.isActive": false,
+              updatedDate: new Date()
+            }
           }
-        }
-      );
+        );
 
-      await postImagesuserModel.updateMany(
-        {
-          userId: user.userId,
-          isActive: true
-        },
-        {
-          $set: {
-            isActive: false,
-            updatedDate: new Date()
+        await postImagesuserModel.updateMany(
+          {
+            userId: user.userId,
+            isActive: true
+          },
+          {
+            $set: {
+              isActive: false,
+              updatedDate: new Date()
+            }
           }
-        }
-      );
+        );
 
-      console.log(
-        `Poster plan deactivated for user ${user.userId}`
-      );
+        console.log(
+          `Poster plan deactivated for user ${user.userId}`
+        );
+      }
     }
-  }
-};
+  };
+
 // const deactivatePostImagePlansForUser = async () => {
 //    const users = await userModel.find({
 //     "details.plan.posterPlan.isActive": true
@@ -1128,7 +1129,6 @@ const deactivatePostImagePlansForUser = async () => {
 
   exports.getJobCounts = async (req, res) => {
   const { userId } = req.body;
-
   try {
     const getPlans = await jobPlanUserModel.find({ userId: userId, isActive: true });
     console.log("Plans found:", getPlans);
@@ -1166,9 +1166,9 @@ const deactivatePostImagePlansForUser = async () => {
     console.error(error);
     return res.send({ status: "error", planActive:false,message: error.message });
   }
-};
+  };
 
-const calculateIncomeByState = async (Model, state, dateFilter = {}) => {
+  const calculateIncomeByState = async (Model, state, dateFilter = {}) => {
   const pipeline = [
     { $match: dateFilter },
 
@@ -1183,7 +1183,7 @@ const calculateIncomeByState = async (Model, state, dateFilter = {}) => {
     { $unwind: "$user" },
   ];
 
-  // ✅ Add state filter ONLY if state is provided
+  // Add state filter ONLY if state is provided
   if (state && state.trim() !== "") {
     pipeline.push({
       $match: {
