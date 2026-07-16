@@ -592,7 +592,8 @@ pipeline.push({
     return res.json({ status: "error", message: error.message });
   }
 };
-exports.userRegister = async (req, res) => {
+
+ exports.userRegister = async (req, res) => {
   try {
 
     const {
@@ -613,7 +614,7 @@ exports.userRegister = async (req, res) => {
 
     let parsedAddress = {};
     let parsedDetails = {};
-const isAdmin =
+   const isAdmin =
   req.body.isAdmin === true ||
   req.body.isAdmin === "true";
     // PARSE JSON
@@ -679,20 +680,24 @@ const isAdmin =
 
       const state = parsedAddress.state.trim();
 
-const counter = await userIds.findOneAndUpdate(
-  { state: state },
-  { $inc: { counter: 1 } },
-  { new: true }
-);
+      const counter = await userIds.findOneAndUpdate(
+        { state: state },
+        { $inc: { counter: 1 } },
+        { new: true }
+      );
 
-if (!counter) {
-  return res.json({
-    status: "error",
-    message: "State not configured"
-  });
-}
+      if (!counter) {
+        return res.json({
+          status: "error",
+          message: "State not configured"
+        });
+      }
 
-const newUserId = `${counter.prefix}${counter.counter}`;
+      const newUserId = `${counter.prefix}${counter.counter}`;
+      console.log("New User ID:", newUserId);
+      console.log("Generated User ID:", newUserId);
+
+      console.log("User object:");
       const images = [];
       const certificates = [];
       const logoImages = [];
@@ -724,12 +729,9 @@ const newUserId = `${counter.prefix}${counter.counter}`;
         }
       }
 
-      // ADDRESS
-
       const addressUpdate = {
-         addressLine1: parsedAddress.addressLine1 || "",
-
-    addressLine2:parsedAddress.addressLine2 || "",
+        addressLine1: parsedAddress.addressLine1 || "",
+        addressLine2:parsedAddress.addressLine2 || "",
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
@@ -747,10 +749,8 @@ const newUserId = `${counter.prefix}${counter.counter}`;
           ]
         };
       }
-
-      // CREATE USER
-
-      const newUser = new userModel({
+    
+       const newUser = new userModel({
         userId: newUserId,
         name,
         dob,
@@ -768,30 +768,29 @@ const newUserId = `${counter.prefix}${counter.counter}`;
         adminDetails: {
           isAdmin: req.body.isAdmin || false,
           adminId: req.body.isAdmin
-              ? newUserId
-              : (req.body.adminId || ""),
+              ? req.body.adminId : "",
           branch: []
         }
       });
     // SAVE USER
      await newUser.save();
-     // SEND EMAIL
-  //  try {
-  //  const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
-  //         {
-  //           userId: newUserId,
-  //           subject: "New Registration",
-  //           title: "new",
-  //           message: "new user added successfully"
-  //         }
-  //       );
-  //      console.log("Mail response:", response.data);
-  // } catch (mailError) {
+     console.log(JSON.stringify(newUser.toObject(), null, 2));
 
-  //       console.log("Mail send failed:", mailError.message);
-  //     }
-
-    //await sendRegistrationOtp(newUserId);
+       // SEND EMAIL
+      //  try {
+      //  const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
+      //         {
+      //           userId: newUserId,
+      //           subject: "New Registration",
+      //           title: "new",
+      //           message: "new user added successfully"
+      //         }
+      //       );
+      //      console.log("Mail response:", response.data);
+      // } catch (mailError) {
+     //       console.log("Mail send failed:", mailError.message);
+      //     }
+ //await sendRegistrationOtp(newUserId);
 
       if (
         userType !== "admin" &&
@@ -801,15 +800,12 @@ const newUserId = `${counter.prefix}${counter.counter}`;
 
         await assignFreePlanToUser(newUserId, userType);
       }
-//add
       return res.json({
         status: "success",
         message: "User registered successfully",
         data: newUser
       });
     }
-
-    // UPDATE USER
     else {
 
       const existingUser = await userModel.findOne({ userId });
@@ -838,36 +834,16 @@ const newUserId = `${counter.prefix}${counter.counter}`;
       let profileImages = parsedOldImages || [];
       let certificatesArr = parsedOldCertificates || [];
       let logoImagesArr = parsedOldLogoImages || [];
-      // if (req.files && req.files.length > 0) {
-      //    for (const file of req.files) {
+      
+    if (req.files && req.files.length > 0) {
+    console.log("REQ FILES =", req.files);
 
-      //     const uploadedUrl = await uploadToS3(file);
+     for (const file of req.files) {
+      console.log("FIELDNAME =", file.fieldname);
 
-      //     switch (file.fieldname) {
+     const uploadedUrl = await uploadToS3(file);
 
-      //       case "image":
-      //         profileImages.push(uploadedUrl);
-      //         break;
-
-      //       case "certificates":
-      //         certificatesArr.push(uploadedUrl);
-      //         break;
-
-      //       case "logoImage":
-      //         logoImagesArr.push(uploadedUrl);
-      //         break;
-      //     }
-      //   }
-      // }
-if (req.files && req.files.length > 0) {
-  console.log("REQ FILES =", req.files);
-
-  for (const file of req.files) {
-    console.log("FIELDNAME =", file.fieldname);
-
-    const uploadedUrl = await uploadToS3(file);
-
-    console.log("UPLOADED URL =", uploadedUrl);
+     console.log("UPLOADED URL =", uploadedUrl);
 
     switch (file.fieldname) {
       case "image":
@@ -890,16 +866,14 @@ if (req.files && req.files.length > 0) {
     }
   }
 }
-
-console.log("profileImages =", profileImages);
-console.log("certificatesArr =", certificatesArr);
+  console.log("profileImages =", profileImages);
+  console.log("certificatesArr =", certificatesArr);
       profileImages = [...new Set(profileImages)];
       certificatesArr = [...new Set(certificatesArr)];
       logoImagesArr = [...new Set(logoImagesArr)];
 
       // UPDATE ADDRESS
-
-      const addressUpdate = {
+     const addressUpdate = {
         addressLine1: parsedAddress.addressLine1 || "",
         addressLine2:parsedAddress.addressLine2 || "",
         state: parsedAddress.state || "",
@@ -919,29 +893,23 @@ console.log("certificatesArr =", certificatesArr);
           ]
         };
       }
-// const mergedDetails = {
-//   ...(existingUser.details || {}),
-//   ...(parsedDetails || {})
-// };
-const mergedDetails = {
-  ...(existingUser.details || {}),
-  ...(parsedDetails || {}),
+      const mergedDetails = {
+        ...(existingUser.details || {}),
+        ...(parsedDetails || {}),
 
-  collegeDetails: {
-    ...(existingUser.details?.collegeDetails || {}),
-    ...(parsedDetails?.collegeDetails || {})
-  },
+        collegeDetails: {
+          ...(existingUser.details?.collegeDetails || {}),
+          ...(parsedDetails?.collegeDetails || {})
+        },
 
-  experienceDetails:
+    experienceDetails:
     parsedDetails?.experienceDetails ||
-    existingUser.details?.experienceDetails ||
-    []
-};
-// MERGE EXISTING ADDRESS
-const mergedAddress = {
-  ...(existingUser.address || {}),
-  ...addressUpdate
-};
+    existingUser.details?.experienceDetails || []
+   };
+      const mergedAddress = {
+        ...(existingUser.address || {}),
+        ...addressUpdate
+      };
       const updateFields = {
         name,
         dob,
@@ -951,7 +919,7 @@ const mergedAddress = {
         location,
         address:mergedAddress,
         details:mergedDetails,
-                // address: addressUpdate,
+        // address: addressUpdate,
         // details: parsedDetails,
         image: profileImages,
         certificates: certificatesArr,
@@ -971,17 +939,15 @@ const mergedAddress = {
         data: updatedUser
       });
     }
-
-  } catch (error) {
-
-    console.error("REGISTER ERROR:", error);
-
-    return res.json({
+   } catch (error) {
+   console.error("REGISTER ERROR:", error);
+   return res.json({
       status: "error",
       message: error.message
     });
   }
-};//neww
+};
+//neww
 // exports.userRegister = async (req, res) => {
 //   try {
 //     const {
@@ -1975,7 +1941,7 @@ return res.json({status:"error",message:error.message})
       const htmlContent = renderTemplate("welcome_user", {
       username:getUserAddress.name,
       password:getUserAddress.password,
-      loginUrl: "https://yourapp.com/login",
+      loginUrl: `${process.env.base_url}/login`,
       year: new Date().getFullYear()
     });
       const htmlContent1 = renderTemplate("admin_notification", {
@@ -1983,10 +1949,10 @@ return res.json({status:"error",message:error.message})
       name:getUserAddress.name,
       mobile:getUserAddress.mobileNumber,
       email:getUserAddress.email,
-     registeredOn: new Date().toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric"
+      registeredOn: new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
   }),
   year: new Date().getFullYear()
 });
@@ -2055,11 +2021,11 @@ return res.json({status:"error",message:error.message})
         ...getSuperAdmins.map(u => u.email)
       ])
     ];
- const appImage= await appLogoModel.find({}
+  const appImage= await appLogoModel.find({}
      //  { userId:req.user.userId } ,
     
     );
-const appLogourls = appImage.map(img => img.appLogo); 
+  const appLogourls = appImage.map(img => img.appLogo); 
     const renderTemplate = (templateName, data) => {
       const templatePath = path.join(
         __dirname,

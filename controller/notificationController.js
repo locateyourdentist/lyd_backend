@@ -1468,7 +1468,6 @@ const createAndSendNotification = async (
     const receiverMap = new Map();
 
     if (isAdmin === true || isAdmin === "true") {
-      // Fetch system administrators
       const admins = await userModel.find(
         { userType: { $in: ["admin", "superAdmin"] } },
         { userId: 1, userType: 1 }
@@ -1476,7 +1475,6 @@ const createAndSendNotification = async (
 
       admins.forEach((u) => receiverMap.set(u.userId, u));
     } else {
-      // 1. Check if an explicit Single User ID was targetted
       if (userId && userId !== "") {
         const user = await userModel.findOne(
           { userId },
@@ -1487,16 +1485,17 @@ const createAndSendNotification = async (
           receiverMap.set(user.userId, user);
         }
       }
-      if (userType && userType !== "" && userType !== "All") {
+      // if (userType && userType !== "" && userType !== "All") {
+              if (userType ) {
         const users = await userModel.find(
-          { userType },
-          { userId: 1, userType: 1 }
+          userType === "All" ? {} : { userType },
+          { userId: 1, userType: 1,isActive:true }
         ).lean();
 
         users.forEach((u) => receiverMap.set(u.userId, u));
       }
     }
-
+//ytfuyytu
     const receivers = [...receiverMap.values()];
     console.log(`[Standard Path] Cleaned Unique Receivers Count: ${receivers.length}`);
 
