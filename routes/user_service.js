@@ -7,6 +7,8 @@ router.post('/create_service',upload.array('serviceImage',3), serviceController.
 router.post('/deactivate_services',serviceController.deactivateServices)
 router.post('/get_service_list',serviceController.getServicesList)
 router.post('/get_service_listById',serviceController.getServicesById)
+router.get('/get_sale_post_list',serviceController.get_sale_post_list)
+router.post('/create_sale_post',upload.array('salePostImage', 3), serviceController.create_sale_post)
 
 
 module.exports=router

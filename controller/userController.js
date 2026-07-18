@@ -9,7 +9,7 @@ app.use(express.json());
 const fs=require('fs');
 const path=require('path')
 const authMiddle=require('../middleware/auth');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const bodyParser = require('body-parser');
 //const { count } = require('console');
 const secret = 'LYD2025';
@@ -29,31 +29,18 @@ const appLogoModel=require('../model/app_logo')
 const serviceModel=require('../model/serviceModel')
 
 
-//  const transporter = nodemailer.createTransport({
-//     service: "gmail",
-//     auth: {
-//         user: `${process.env.nodemail_username}`,
-//         pass: `${process.env.nodemail_password}`,
-//       }
-//     });
-const transporter = nodemailer.createTransport({
-  host: "smtp.resend.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: "resend",
-    pass: process.env.RESEND_API_KEY,
-  },
-});
-//     const transporter = nodemailer.createTransport({
-//   host: "email-smtp.ap-south-1.amazonaws.com",
-//   port: 587,
-//   secure: false,
-//   auth: {
-//     user: `${process.env.nodemail_username}`,
-//     pass: `${process.env.nodemail_password}`,
-//   },
-// });
+// Render blocks outbound SMTP ports on free web services, so mail is sent
+// via Resend's HTTPS API instead of SMTP (smtp.resend.com) to avoid timeouts.
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const sendMail = async ({ from, to, subject, html }) => {
+  const toList = Array.isArray(to)
+    ? to
+    : String(to).split(",").map((e) => e.trim()).filter(Boolean);
+  const { data, error } = await resend.emails.send({ from, to: toList, subject, html });
+  if (error) throw new Error(error.message || "Failed to send email");
+  return data;
+};
 exports.deleteAwsfile = async (req, res) => {
   const { fileUrl,name} = req.body;
   if (!fileUrl) {
@@ -145,13 +132,13 @@ const sendRegistrationOtp = async (userId) => {
     });
      console.log(`sslog${user.email}`)
     // Send mail
-     const info= await transporter.sendMail({
+     const info= await sendMail({
       from: '"LYD" <developer.catchytechnologies@gmail.com>',
       to: user.email,
       subject: "LYD OTP Verification Mail",
       html: htmlContent,
     });
-    console.log("Mail sent:", info.response);
+    console.log("Mail sent:", info?.id);
     return { status: "success", message: "OTP sent to email" };
   } catch (err) {
     return { status: "error", message: err.message };
@@ -782,19 +769,6 @@ pipeline.push({
     // SAVE USER
      await newUser.save();
      console.log(JSON.stringify(newUser.toObject(), null, 2));
-
-     // SEND EMAIL
-  //  try {
-  //  const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
-  //         {
-  //           userId: newUserId,
-  //           subject: "New Registration",
-  //           title: "new",
-  //           message: "new user added successfully"
-  //         }
-  //       );
-  //      console.log("Mail response:", response.data);
-  // } catch (mailError) {
 
        // SEND EMAIL
       //  try {
@@ -1583,7 +1557,7 @@ const assignFreePlanToUser = async (newUserId, userType) => {
       year: new Date().getFullYear(),
     });
 
-    await transporter.sendMail({
+    await sendMail({
       from: `"LYD" <${process.env.nodemail_username}>`,
       to: email,
       subject: "LYD OTP Verification Mail",
@@ -1784,7 +1758,7 @@ console.log(`ie${urls}`)
       name:user.name??"",
       year: new Date().getFullYear()
     });
-     await transporter.sendMail({
+     await sendMail({
       from: `"LYD" <${process.env.nodemail_username}>`,
       to: mail,
       subject:"LYD OTP Verification Mail",
@@ -1984,13 +1958,13 @@ return res.json({status:"error",message:error.message})
     //   }
     // });
 
-    await transporter.sendMail({
+    await sendMail({
       from: `"LYD" <${process.env.nodemail_username}>`,
       to: adminEmailList,
       subject,
       html: htmlContent
     });
-     await transporter.sendMail({
+     await sendMail({
       from: `"LYD" <${process.env.nodemail_username}>`,
       to: getUserAddress.email,
       subject,
@@ -2090,13 +2064,13 @@ return res.json({status:"error",message:error.message})
     // });
     const adminEmailList = allMailIds.filter(Boolean).join(",");
 
-    await transporter.sendMail({
+    await sendMail({
       from: `"LYD" <${process.env.nodemail_username}>`,
       to: adminEmailList,
       subject,
       html: htmlContent1
     });
-     await transporter.sendMail({
+     await sendMail({
       from: `"LYD" <${process.env.nodemail_username}>`,
       to: getUserAddress.email,
       subject,
@@ -2259,7 +2233,7 @@ const renderTemplate = (templateName, data) => {
   .sort({ createdDate: -1 });
 
 const appLogoUrl = appImage?.appLogo || "";
-    await transporter.sendMail({
+    await sendMail({
       from: `"${emailData.companyName}" <${process.env.nodemail_username}>`,
       to: user.email,
       subject: subject,
@@ -2268,7 +2242,7 @@ const appLogoUrl = appImage?.appLogo || "";
     });
    const adminEmailList = allMailIds.filter(Boolean).join(",");
     if (allMailIds.length) {
-      await transporter.sendMail({
+      await sendMail({
         from: `"LYD" <${process.env.nodemail_username}>`,
         to: adminEmailList,
         subject: subject,
@@ -2426,7 +2400,7 @@ exports.job_email = async (req, res) => {
     //   }
     // });
     if(title=='update'){
-    await transporter.sendMail({
+    await sendMail({
       from: `"LYD App" <${process.env.nodemail_username}>`,
       to: user.email,
       subject,
@@ -2438,7 +2412,7 @@ exports.job_email = async (req, res) => {
   }
 
     if (adminEmails) {
-      await transporter.sendMail({
+      await sendMail({
         from: `"LYD App" <${process.env.nodemail_username}>`,
         to: adminEmails,
         subject: `Job Alert: ${subject}`,
@@ -2447,19 +2421,12 @@ exports.job_email = async (req, res) => {
       
     }
     if (title=='new'&&jobSeekerEmails) {
-      await transporter.sendMail({
+      await sendMail({
         from: `"LYD App" <${process.env.nodemail_username}>`,
         to: jobSeekerEmails,
         subject: `New Job Alert: ${subject}`,
         html: userHtml
       });
-      transporter.verify((error, success) => {
-  if (error) {
-    console.error('SMTP Connection Error:', error);
-  } else {
-    console.log('SMTP Server is ready to take messages');
-  }
-});
     }
     return res.send({ status: "Success", message: "Job status email sent successfully" });
   } catch (error) {

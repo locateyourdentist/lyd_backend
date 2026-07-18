@@ -176,10 +176,10 @@ async function uploadToS3(file) {
     case 'serviceImage': folder = uploadDirs.serviceImage; break;
     case 'contactImage': folder = uploadDirs.contactImage; break;
     case 'posterImages': folder = uploadDirs.posterImages; break;
+    case 'salePostImage': folder = uploadDirs.salePostImage; break;
     case 'notificationImage': folder = uploadDirs.notificationImage; break;
     default: folder = "Others";
   }
-
   const userId = file.userId || Date.now();
 
   const mimeToExt = {

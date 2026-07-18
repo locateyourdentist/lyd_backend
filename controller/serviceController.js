@@ -3,8 +3,7 @@ const serviceModel=require('../model/serviceModel')
 const serviceIdModel=require('../model/serviceId');
 const serviceId = require('../model/serviceId');
 const { uploadToS3 ,deleteFromS3 } = require("../file_uploadImage");
-
-
+const SalePost = require('../model/create_sale_model');
  
 
  exports.createServices = async (req, res) => {
@@ -158,3 +157,43 @@ catch(error){
 res.send({Status:"success",message:error.message})
 }
 }
+
+
+  exports.get_sale_post_list=async(req,res)=>{
+
+  try {
+    const { userType, search } = req.query;
+    const filter = { isActive: true };
+    if (userType) filter.userType = userType;
+    if (search) filter.message = { $regex: search, $options: 'i' };
+
+    const posts = await SalePost.find(filter).sort({ createdAt: -1 });
+    res.json({ status: 'Success', data: posts });
+  } catch (err) {
+    res.status(500).json({ status: 'Error', message: err.message });
+  }
+};
+
+  exports.create_sale_post=async(req,res)=>{
+
+  try {
+    const { userId, userType, mobileNumber, message, price } = req.body;
+
+    const imageUrls = await Promise.all(
+      (req.files || []).map((file) => uploadToS3(file, `salePost/${userId}`))
+    );
+
+    const post = await SalePost.create({
+      userId,
+      userType,
+      mobileNumber,
+      message,
+      price,
+      images: imageUrls,
+    });
+
+    res.json({ status: 'Success', message: 'Sale post created', data: post });
+  } catch (err) {
+    res.status(500).json({ status: 'Error', message: err.message });
+  }
+};
