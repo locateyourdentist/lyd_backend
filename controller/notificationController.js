@@ -10,6 +10,7 @@ const { uploadToS3 ,deleteFromS3 } = require("../file_uploadImage");
 const { errorLogger, successLogger } = require('../logger_error/logger');
 const geo = require("geodata-utils");
 const LocationModel=require('../model/state_district_model')
+const axios=require('axios')
 
 // admin.initializeApp({
 //   credential: admin.credential.cert(require('../locateyourdentist-5c2ca-firebase-adminsdk-fbsvc-e04318573f.json')),
@@ -1347,9 +1348,6 @@ const createAndSendNotification = async (
       sound: "default",
       channelId: "high_importance_channel",
       imageUrl: notificationImage || undefined,
-      
-      // FIX 1: Explicitly set a unique tag for Android.
-      // If tags differ, Android keeps both notifications separate.
       tag: receiverUserId, 
     },
   },
@@ -1486,7 +1484,7 @@ const createAndSendNotification = async (
         }
       }
       // if (userType && userType !== "" && userType !== "All") {
-              if (userType ) {
+        if (userType ) {
         const users = await userModel.find(
           userType === "All" ? {} : { userType },
           { userId: 1, userType: 1,isActive:true }
@@ -1517,13 +1515,24 @@ const createAndSendNotification = async (
         city,
         area
       );
+       try {
+       const response = await axios.post(`${process.env.base_url}/lyd/user/create_email`,
+              {
+                userId: receiver.userId,
+                subject: "New Notification",
+                title: title,
+                message: message
+              }
+            );
+       console.log("Mail response:", response.data);
+      } catch (mailError) {
+      console.log("Mail send failed:", mailError.message);
+      }
     } 
-
-    return res.send({
+     return res.send({
       status: "success",
       message: `Notification sent to ${receivers.length} users`,
     });
-
   } catch (error) {
     console.error("NOTIFICATION SYSTEM CRITICAL ERROR:", error);
     return res.send({

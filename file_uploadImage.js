@@ -161,7 +161,8 @@ const uploadDirs = {
   posterImages:'posterImages',
   logo:'logo',
   notificationImage:'notificationImage',
-  appLogo:'appLogo'
+  appLogo:'appLogo',
+  salePostImage:'salePostImage'
 };
 async function uploadToS3(file) {
   let folder;

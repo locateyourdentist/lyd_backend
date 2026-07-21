@@ -29,8 +29,7 @@ const appLogoModel=require('../model/app_logo')
 const serviceModel=require('../model/serviceModel')
 
 
-// Render blocks outbound SMTP ports on free web services, so mail is sent
-// via Resend's HTTPS API instead of SMTP (smtp.resend.com) to avoid timeouts.
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendMail = async ({ from, to, subject, html }) => {
@@ -685,7 +684,7 @@ pipeline.push({
       console.log("Generated User ID:", newUserId);
 
       console.log("User object:");
-  console.log("User object:");
+      console.log("User object:");
       const images = [];
       const certificates = [];
       const logoImages = [];
@@ -721,10 +720,8 @@ pipeline.push({
 
         addressLine1: parsedAddress.addressLine1 || "",
         addressLine2:parsedAddress.addressLine2 || "",
-
-         addressLine1: parsedAddress.addressLine1 || "",
-
-       addressLine2:parsedAddress.addressLine2 || "",
+        addressLine1: parsedAddress.addressLine1 || "",
+        addressLine2:parsedAddress.addressLine2 || "",
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
@@ -1355,6 +1352,56 @@ const PHONE_NUMBER_ID = `${process.env.PHONE_NUMBER_ID}`;;
 const TOKEN = `${process.env.WHATSAPP_ACCESS_TOKEN}`;
 const API_URL = `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`;
 
+
+
+const GRAPH_URL = `https://graph.facebook.com/${process.env.GRAPH_API_VERSION}/${process.env.PHONE_NUMBER_ID}/messages`;
+
+// async function sendTemplate(phone, templateName, languageCode, parameters = []) {
+
+//     const bodyParameters = parameters.map(value => ({
+//         type: "text",
+//         text: value
+//     }));
+
+//     const payload = {
+
+//         messaging_product: "whatsapp",
+
+//         to: phone,
+
+//         type: "template",
+
+//         template: {
+
+//             name: templateName,
+
+//             language: {
+//                 code: languageCode
+//             },
+
+//             components: [
+//                 {
+//                     type: "body",
+//                     parameters: bodyParameters
+//                 }
+//             ]
+//         }
+//     };
+
+//     const response = await axios.post(
+//         GRAPH_URL,
+//         payload,
+//         {
+//             headers: {
+//                 Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+//                 "Content-Type": "application/json"
+//             }
+//         }
+//     );
+
+//     return response.data;
+// }
+
 // Function to send WhatsApp message
 async function sendWhatsAppTemplate(toNumber, templateName, templateParams = []) {
   try {
@@ -1445,7 +1492,7 @@ const assignFreePlanToUser = async (newUserId, userType) => {
   
     // 3. Create user plan
     const response = await axios.post(
-      `${process.env.base_url}lyd/plans/create_userPlan`,
+      `${process.env.base_url}/lyd/plans/create_userPlan`,
       {
         userId: newUserId,
         planId: planId,
@@ -2017,8 +2064,7 @@ return res.json({status:"error",message:error.message})
     ];
   const appImage= await appLogoModel.find({}
      //  { userId:req.user.userId } ,
-    
-    );
+     );
   const appLogourls = appImage.map(img => img.appLogo); 
     const renderTemplate = (templateName, data) => {
       const templatePath = path.join(
@@ -2046,7 +2092,7 @@ return res.json({status:"error",message:error.message})
       name:getUserAddress.name,
       mobile:getUserAddress.mobileNumber,
       email:getUserAddress.email,
-            logoUrl:appLogourls[0],
+      logoUrl:appLogourls[0],
       loginUrl: `${process.env.base_url}/lyd/user/login_user`,
      registeredOn: new Date().toLocaleDateString("en-IN", {
      day: "2-digit",
@@ -2065,13 +2111,13 @@ return res.json({status:"error",message:error.message})
     const adminEmailList = allMailIds.filter(Boolean).join(",");
 
     await sendMail({
-      from: `"LYD" <${process.env.nodemail_username}>`,
+      from: `<${process.env.nodemail_username}>`,
       to: adminEmailList,
       subject,
       html: htmlContent1
     });
      await sendMail({
-      from: `"LYD" <${process.env.nodemail_username}>`,
+      from: `<${process.env.nodemail_username}>`,
       to: getUserAddress.email,
       subject,
       html: htmlContent
@@ -2097,12 +2143,8 @@ const safe = v => (v === null || v === undefined ? "" : v);
   if (parts.length !== 3) return "";
 
   let [day, month, year] = parts;
-
-  // normalize single-digit day/month
   day = day.padStart(2, "0");
   month = month.padStart(2, "0");
-
-  // basic validation
   if (
     day < 1 || day > 31 ||
     month < 1 || month > 12 ||
@@ -2376,7 +2418,7 @@ exports.job_email = async (req, res) => {
       statusMessage: statusInfo.message,
       statusColor: statusInfo.color,
       appliedDate: new Date(job.createdDate).toLocaleDateString("en-IN"),
-      jobUrl: `${process.env.base_url}lyd/jobs/getJobById?jobId=${jobId}`,
+      jobUrl: `${process.env.base_url}/lyd/jobs/getJobById?jobId=${jobId}`,
       companyName: "LYD",
       extraContent: getExtraContent(jobStatus), 
       year: new Date().getFullYear()
