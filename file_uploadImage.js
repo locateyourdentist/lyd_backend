@@ -124,7 +124,7 @@ const upload = multer({
     fileSize: 100 * 1024 * 1024, 
   },
   fileFilter: (req, file, cb) => {
-    const imageTypes = ["image/jpeg", "image/png", "image/jpg", "application/octet-stream"];
+    const imageTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp", "application/octet-stream"];
     const videoTypes = ["video/mp4", "video/quicktime"];
 
     if (imageTypes.includes(file.mimetype)) {

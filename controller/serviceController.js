@@ -160,9 +160,8 @@ res.send({Status:"success",message:error.message})
 
 
   exports.get_sale_post_list=async(req,res)=>{
-
   try {
-    const { userType, search } = req.query;
+    const { userType, search } = req.body;
     const filter = { isActive: true };
     if (userType) filter.userType = userType;
     if (search) filter.message = { $regex: search, $options: 'i' };

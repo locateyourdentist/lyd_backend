@@ -1699,10 +1699,6 @@ const assignFreePlanToUser = async (newUserId, userType) => {
         message: "File not found"
       });
     }
- const appImage= await appLogoModel.find({}
-     //  { userId:req.user.userId } ,
-    );
-        const result = await deleteFromS3(appImage[0]?.appLogo);
 
     const imageUrl = await uploadToS3(req.file);
 
@@ -2560,7 +2556,7 @@ exports.job_email = async (req, res) => {
       await sendMail({
         from: `"LYD App" <${process.env.nodemail_username}>`,
         to: adminEmails,
-        subject: `Job Alert: ${title=='new' ? newPostContent.emailSubject : statusContent.emailSubject}`,
+        subject: `Job Alert: ${subject}`,
         html: adminHtml
       });
 

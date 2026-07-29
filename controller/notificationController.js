@@ -11,6 +11,7 @@ const { errorLogger, successLogger } = require('../logger_error/logger');
 const geo = require("geodata-utils");
 const LocationModel=require('../model/state_district_model')
 const axios=require('axios')
+const { getNotificationContent, dispatchWhatsapp } = require('./notification_content_service')
 
 // admin.initializeApp({
 //   credential: admin.credential.cert(require('../locateyourdentist-5c2ca-firebase-adminsdk-fbsvc-e04318573f.json')),
@@ -1468,7 +1469,7 @@ const createAndSendNotification = async (
     if (isAdmin === true || isAdmin === "true") {
       const admins = await userModel.find(
         { userType: { $in: ["admin", "superAdmin"] } },
-        { userId: 1, userType: 1 }
+        { userId: 1, userType: 1, name: 1, mobileNumber: 1 }
       ).lean();
 
       admins.forEach((u) => receiverMap.set(u.userId, u));
@@ -1476,7 +1477,7 @@ const createAndSendNotification = async (
       if (userId && userId !== "") {
         const user = await userModel.findOne(
           { userId },
-          { userId: 1, userType: 1 }
+          { userId: 1, userType: 1, name: 1, mobileNumber: 1 }
         ).lean();
 
         if (user) {
@@ -1487,7 +1488,7 @@ const createAndSendNotification = async (
         if (userType ) {
         const users = await userModel.find(
           userType === "All" ? {} : { userType },
-          { userId: 1, userType: 1,isActive:true }
+          { userId: 1, userType: 1, name: 1, mobileNumber: 1, isActive:true }
         ).lean();
 
         users.forEach((u) => receiverMap.set(u.userId, u));
@@ -1503,6 +1504,12 @@ const createAndSendNotification = async (
         message: "No users found"
       });
     }
+    const broadcastContent = await getNotificationContent('admin_notification_broadcast', {
+      title,
+      message,
+      whatsappVariables: ['name', 'title', 'message'],
+    });
+
     for (const receiver of receivers) {
       await createAndSendNotification(
         receiver.userId,
@@ -1515,20 +1522,13 @@ const createAndSendNotification = async (
         city,
         area
       );
-       try {
-       const response = await axios.post(`${process.env.base_url}/lyd/user/create_email`,
-              {
-                userId: receiver.userId,
-                subject: "New Notification",
-                title: title,
-                message: message
-              }
-            );
-       console.log("Mail response:", response.data);
-      } catch (mailError) {
-      console.log("Mail send failed:", mailError.message);
-      }
-    } 
+
+      await dispatchWhatsapp(broadcastContent, receiver.mobileNumber, {
+        name: receiver.name ?? "",
+        title,
+        message,
+      });
+    }
      return res.send({
       status: "success",
       message: `Notification sent to ${receivers.length} users`,

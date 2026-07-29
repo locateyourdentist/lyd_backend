@@ -72,6 +72,8 @@ const jobs = require('./routes/job_webinar');
 const notification = require('./routes/notification_routes');
 const plans = require('./routes/plan_routes');
 const contacts = require('./routes/contact_form_routes');
+const whatsappTemplates = require('./routes/whatsapp_template_routes');
+const notificationContent = require('./routes/notification_content_routes');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -88,6 +90,8 @@ app.use('/lyd/jobs', jobs);
 app.use('/lyd/notifications', notification);
 app.use('/lyd/plans', plans);
 app.use('/lyd/contacts', contacts);
+app.use('/lyd/whatsapp-templates', whatsappTemplates);
+app.use('/lyd/notification-content', notificationContent);
 
 app.use('/ProfilePictures', express.static('ProfilePictures'));
 app.use('/certificates', express.static('certificates'));
