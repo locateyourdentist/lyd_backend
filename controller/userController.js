@@ -31,9 +31,13 @@ const { getNotificationContent, dispatchWhatsapp } = require('./notification_con
 
 
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+if (!resend) {
+  console.error('[Mail] RESEND_API_KEY is not set — email sending is disabled until it is configured.');
+}
 
 const sendMail = async ({ from, to, subject, html }) => {
+  if (!resend) throw new Error("Email sending is not configured (missing RESEND_API_KEY)");
   const toList = Array.isArray(to)
     ? to
     : String(to).split(",").map((e) => e.trim()).filter(Boolean);
