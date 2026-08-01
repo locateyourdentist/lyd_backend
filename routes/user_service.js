@@ -8,6 +8,7 @@ router.post('/deactivate_services',serviceController.deactivateServices)
 router.post('/get_service_list',serviceController.getServicesList)
 router.post('/get_service_listById',serviceController.getServicesById)
 router.post('/get_sale_post_list',serviceController.get_sale_post_list)
+router.get('/get_sale_post_byId/:id',serviceController.get_sale_post_byId)
 router.post('/create_sale_post',upload.array('salePostImage', 3), serviceController.create_sale_post)
 
 

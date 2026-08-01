@@ -173,6 +173,19 @@ res.send({Status:"success",message:error.message})
   }
 };
 
+  exports.get_sale_post_byId=async(req,res)=>{
+  try {
+    const { id } = req.params;
+    const post = await SalePost.findOne({ _id: id, isActive: true });
+    if (!post) {
+      return res.status(404).json({ status: 'Error', message: 'Sale post not found' });
+    }
+    res.json({ status: 'Success', data: post });
+  } catch (err) {
+    res.status(500).json({ status: 'Error', message: err.message });
+  }
+};
+
   exports.create_sale_post=async(req,res)=>{
 
   try {

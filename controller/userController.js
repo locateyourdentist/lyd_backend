@@ -778,22 +778,6 @@ pipeline.push({
      await newUser.save();
      console.log(JSON.stringify(newUser.toObject(), null, 2));
 
-       // SEND EMAIL
-      //  try {
-      //  const response = await axios.post(`${process.env.base_url}lyd/user/create_email`,
-      //         {
-      //           userId: newUserId,
-      //           subject: "New Registration",
-      //           title: "new",
-      //           message: "new user added successfully"
-      //         }
-      //       );
-      //      console.log("Mail response:", response.data);
-      // } catch (mailError) {
-      //       console.log("Mail send failed:", mailError.message);
-      //     }
-     //await sendRegistrationOtp(newUserId);
-
       if (
         userType !== "admin" &&
         userType !== "superAdmin" &&
@@ -802,11 +786,28 @@ pipeline.push({
 
         await assignFreePlanToUser(newUserId, userType);
       }
-      return res.json({
+
+      res.json({
         status: "success",
         message: "User registered successfully",
         data: newUser
       });
+      axios.post(`${process.env.base_url}lyd/user/create_email`, {
+        userId: newUserId,
+        subject: "New Registration",
+        title: "new",
+        message: "new user added successfully"
+      }).then((response) => {
+        console.log("Mail response:", response.data);
+      }).catch((mailError) => {
+        console.log("Mail send failed:", mailError.message);
+      });
+
+      sendRegistrationOtp(newUserId).catch((otpError) => {
+        console.log("Registration OTP send failed:", otpError.message);
+      });
+
+      return;
     }
     else {
 

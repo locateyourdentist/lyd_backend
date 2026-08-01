@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{title}}</title>
+
+  <meta property="og:title" content="{{title}}" />
+  <meta property="og:description" content="{{message}}" />
+  {{#if image}}
+  <meta property="og:image" content="{{image}}" />
+  {{/if}}
+  <meta property="og:url" content="{{url}}" />
+  <meta property="og:type" content="website" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    .wrapper { padding: 40px 20px; }
+    .container {
+      max-width: 480px;
+      margin: auto;
+      background: #ffffff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+    .image { width: 100%; height: 220px; object-fit: cover; background: #e2e8f0; }
+    .content { padding: 25px; color: #334155; }
+    .title { font-size: 20px; font-weight: 700; color: #004958; margin: 0 0 4px; }
+    .org { font-size: 15px; color: #64748b; margin: 0 0 14px; }
+    .message { font-size: 14px; line-height: 1.6; margin: 0 0 20px; color: #6b7280; }
+    .btn {
+      display: block;
+      text-align: center;
+      padding: 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      text-decoration: none;
+      margin-top: 10px;
+    }
+    .btn-primary { background: #004958; color: #ffffff !important; }
+    .btn-secondary { background: #f1f5f9; color: #004958 !important; border: 1px solid #cbd5e1; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      {{#if image}}
+      <img src="{{image}}" alt="{{title}}" class="image" />
+      {{/if}}
+      <div class="content">
+        <p class="title">{{title}}</p>
+        <p class="org">{{orgName}}</p>
+        <p class="message">{{message}}</p>
+        <a href="{{url}}" class="btn btn-primary">Open in LYD App</a>
+        <a href="{{webUrl}}" class="btn btn-secondary">Download the App</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

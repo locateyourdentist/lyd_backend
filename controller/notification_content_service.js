@@ -21,11 +21,6 @@ const getNotificationContent = async (key, defaults = {}) => {
   };
 };
 
-// Sends a Meta-approved WhatsApp template message directly via the Graph API,
-// using whatever template name/language is configured on the notification_content
-// record. Does NOT require the template to also be registered in our own
-// whatsappTemplate collection — this supports templates created and approved
-// directly on business.facebook.com.
 const dispatchWhatsapp = async (content, toNumber, context = {}) => {
   if (!toNumber || !content?.whatsappTemplateName) {
     return;

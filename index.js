@@ -74,6 +74,9 @@ const plans = require('./routes/plan_routes');
 const contacts = require('./routes/contact_form_routes');
 const whatsappTemplates = require('./routes/whatsapp_template_routes');
 const notificationContent = require('./routes/notification_content_routes');
+const wellKnown = require('./routes/well_known_routes');
+const salePostPublic = require('./routes/sale_post_public_routes');
+const jobPublic = require('./routes/job_public_routes');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -92,6 +95,9 @@ app.use('/lyd/plans', plans);
 app.use('/lyd/contacts', contacts);
 app.use('/lyd/whatsapp-templates', whatsappTemplates);
 app.use('/lyd/notification-content', notificationContent);
+app.use('/.well-known', wellKnown);
+app.use('/', salePostPublic);
+app.use('/', jobPublic);
 
 app.use('/ProfilePictures', express.static('ProfilePictures'));
 app.use('/certificates', express.static('certificates'));
