@@ -28,6 +28,7 @@ const userLoginModel=require('../model/loginmodel')
 const appLogoModel=require('../model/app_logo')
 const serviceModel=require('../model/serviceModel')
 const { getNotificationContent, dispatchWhatsapp } = require('./notification_content_service')
+const { getRemainingPosterQuota } = require('./poster_quota_service')
 
 
 
@@ -2626,6 +2627,14 @@ exports.job_email = async (req, res) => {
             return res.json({
               status: "error",
               message: "Image required"
+            });
+          }
+
+          const quota = await getRemainingPosterQuota(userId);
+          if (!quota.planActive || quota.remaining <= 0) {
+            return res.json({
+              status: "error",
+              message: "Your plan has expired. Please purchase a new plan to continue."
             });
           }
 

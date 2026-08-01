@@ -30,6 +30,7 @@ router.post('/create_posterImageUserPlan',auth,planController.createPosterImageU
 
 router.post('/check_planStatus',auth,planController.checkPlanStatus)
 router.post('/getJobCountByUserId',auth,planController.getJobCounts)
+router.post('/getPosterQuotaByUserId',auth,planController.getPosterQuotaByUserId)
 router.post('/calculateIncome',auth,planController.calculateIncome_admin)
 
 router.post('/add_expenses',auth,planController.addExpenses)

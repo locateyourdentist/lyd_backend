@@ -4,6 +4,7 @@ const serviceIdModel=require('../model/serviceId');
 const serviceId = require('../model/serviceId');
 const { uploadToS3 ,deleteFromS3 } = require("../file_uploadImage");
 const SalePost = require('../model/create_sale_model');
+const { getRemainingPosterQuota, parseDDMMYYYY } = require('./poster_quota_service');
  
 
  exports.createServices = async (req, res) => {
@@ -167,7 +168,18 @@ res.send({Status:"success",message:error.message})
     if (search) filter.message = { $regex: search, $options: 'i' };
 
     const posts = await SalePost.find(filter).sort({ createdAt: -1 });
-    res.json({ status: 'Success', data: posts });
+
+    // Exclude posts whose plan window has ended. Posts with no endDate
+    // (created before this field existed) stay visible for compatibility.
+    const now = new Date();
+    const activePosts = posts.filter((post) => {
+      if (!post.endDate) return true;
+      const endDate = parseDDMMYYYY(post.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      return endDate >= now;
+    });
+
+    res.json({ status: 'Success', data: activePosts });
   } catch (err) {
     res.status(500).json({ status: 'Error', message: err.message });
   }
@@ -191,6 +203,14 @@ res.send({Status:"success",message:error.message})
   try {
     const { userId, userType, mobileNumber, message, price } = req.body;
 
+    const quota = await getRemainingPosterQuota(userId);
+    if (!quota.planActive || quota.remaining <= 0) {
+      return res.json({
+        status: 'Error',
+        message: 'Your plan has expired. Please purchase a new plan to continue.'
+      });
+    }
+
     const imageUrls = await Promise.all(
       (req.files || []).map((file) => uploadToS3(file, `salePost/${userId}`))
     );
@@ -202,6 +222,8 @@ res.send({Status:"success",message:error.message})
       message,
       price,
       images: imageUrls,
+      startDate: quota.startDate,
+      endDate: quota.endDate,
     });
 
     res.json({ status: 'Success', message: 'Sale post created', data: post });

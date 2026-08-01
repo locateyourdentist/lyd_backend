@@ -18,6 +18,7 @@ const postImagesmodel=require('../model/postImagesModel')
 const webinarPlanuserModel=require('../model/webinarPlan_userModel')
 const postImagesuserModel=require('../model/post_images_user_model')
 const expenseModel=require('../model/expenses')
+const { getRemainingPosterQuota } = require('./poster_quota_service')
 const companyModel=require('../model/address_company')
 const addGstModel=require('../model/add_gst_details_state')
 //const Company = mongoose.model('Company'); 
@@ -1165,6 +1166,20 @@ const deactivateWebinarPlansForUser = async () => {
    } catch (error) {
     console.error(error);
     return res.send({ status: "error", planActive:false,message: error.message });
+  }
+  };
+
+  exports.getPosterQuotaByUserId = async (req, res) => {
+  const { userId } = req.body;
+  try {
+    const { planActive, remaining } = await getRemainingPosterQuota(userId);
+    if (!planActive) {
+      return res.send({ status: "error", planActive: false, message: "no plans found" });
+    }
+    return res.send({ status: "success", planActive: true, counts: remaining });
+  } catch (error) {
+    console.error(error);
+    return res.send({ status: "error", planActive: false, message: error.message });
   }
   };
 
