@@ -1660,7 +1660,7 @@ const assignFreePlanToUser = async (newUserId, userType) => {
     const token = jwt.sign(
       { userId: user.userId, userName: user.name, userType: user.userType },
       secret,
-      { expiresIn: '1y' } );
+      { expiresIn: "365d"  } );
      
      res.send({ status: 'success', authToken: `${token}`, data: user});
    } catch (err) {
