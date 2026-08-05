@@ -793,7 +793,7 @@ pipeline.push({
         message: "User registered successfully",
         data: newUser
       });
-      axios.post(`${process.env.base_url}lyd/user/create_email`, {
+      axios.post(`${process.env.base_url}/lyd/user/create_email`, {
         userId: newUserId,
         subject: "New Registration",
         title: "new",
@@ -2562,7 +2562,7 @@ exports.job_email = async (req, res) => {
     await dispatchWhatsapp(statusContent, user.mobileNumber, { name: user.name, jobTitle: job.jobTitle });
   }
 
-    if (adminEmails) {
+    if (adminEmails && adminHtml) {
       await sendMail({
         from: `"LYD App" <${process.env.nodemail_username}>`,
         to: adminEmails,
