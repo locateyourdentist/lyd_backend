@@ -61,6 +61,13 @@ const express = require('express');
 const app = express();
 require('dotenv').config();
 
+// Every internal self-call builds URLs as `${base_url}/lyd/...` (leading
+// slash). A trailing slash on the configured base_url would produce a
+// double slash that Express 404s on, so normalize it away here once.
+if (process.env.base_url) {
+  process.env.base_url = process.env.base_url.replace(/\/+$/, '');
+}
+
 const cors = require('cors');
 const connectDB = require('./db_config');
 
