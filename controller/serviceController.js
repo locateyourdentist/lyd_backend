@@ -190,7 +190,7 @@ res.send({Status:"success",message:error.message})
     const { id } = req.params;
     const post = await SalePost.findOne({ _id: id, isActive: true });
     if (!post) {
-      return res.status(404).json({ status: 'Error', message: 'Sale post not found' });
+      return res.send({ status: 'Error', message: 'Sale post not found' });
     }
     res.json({ status: 'Success', data: post });
   } catch (err) {

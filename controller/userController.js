@@ -428,15 +428,24 @@ if (filters.city) {
     };
   }
 }
-// if (filters.area)
-//   matchQuery["address.area"] = { $regex: `^${filters.area.trim()}$`, $options: "i" };
-// if (filters.city)
-//   matchQuery["address.city"] = { $regex: `^${filters.city.trim()}$`, $options: "i" };
     if (filters.userType) {
       matchQuery.userType = {
         $regex: `^${filters.userType.trim()}$`,
         $options: "i",
       };
+    }
+
+    if (filters.degreeName) {
+      matchQuery["details.degreeName"] = {
+        $regex: `^${filters.degreeName.trim()}$`,
+        $options: "i",
+      };
+    }
+    if (Array.isArray(filters.availableLocations) && filters.availableLocations.length) {
+      matchQuery["details.availableLocations"] = { $in: filters.availableLocations };
+    }
+    if (Array.isArray(filters.availableTiming) && filters.availableTiming.length) {
+      matchQuery["details.availableTiming.slot"] = { $in: filters.availableTiming };
     }
 
     let pipeline = [];
