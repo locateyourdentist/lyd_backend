@@ -738,42 +738,27 @@ return res.send({status:"error",message:`plan error ${error.message}`})
   }
   const deactivateBasePlansForUser = async () => {
     try {
-      const users = await userModel.find({
-        "details.plan.basePlan.isActive": true
-      });
-
       const today = new Date();
       today.setUTCHours(0, 0, 0, 0);
 
-      console.log("Today's Date:", today.toISOString());
+      const activePlans = await userPlanModel.find({ isActive: true });
 
-      for (const user of users) {
-        const basePlan = user.details?.plan?.basePlan;
+      for (const plan of activePlans) {
+        if (!plan.endDate) continue;
 
-        if (!basePlan || !basePlan.endDate) continue;
-
-        const endDate = parseDate(basePlan.endDate);
-
-        if (!endDate) {
-          console.log(`Invalid endDate for ${user.userId}: ${basePlan.endDate}`);
-          continue;
-        }
+        const endDate = parseDate(plan.endDate);
+        if (!endDate) continue;
 
         endDate.setUTCHours(0, 0, 0, 0);
 
-        console.log("--------------------------------");
-        console.log("User:", user.userId);
-        console.log("Stored End Date:", basePlan.endDate);
-        console.log("Parsed End Date:", endDate.toISOString());
-        console.log("Today:", today.toISOString());
-        console.log("Is Active:", basePlan.isActive);
-        console.log("Expired:", today.getTime() > endDate.getTime());
-
         if (today.getTime() > endDate.getTime()) {
+          await userPlanModel.updateOne(
+            { _id: plan._id },
+            { $set: { isActive: false, updatedDate: new Date() } }
+          );
 
-          // Update user collection
           await userModel.updateOne(
-            { _id: user._id },
+            { userId: plan.userId, "details.plan.basePlan.isActive": true },
             {
               $set: {
                 "details.plan.basePlan.isActive": false,
@@ -782,28 +767,7 @@ return res.send({status:"error",message:`plan error ${error.message}`})
             }
           );
 
-          // Update user plan collection
-          const updatedPlan = await userPlanModel.findOneAndUpdate(
-            {
-              userId: user.userId,
-              isActive: true
-            },
-            {
-              $set: {
-                isActive: false,
-                updatedDate: new Date()
-              }
-            },
-            {
-              new: true
-            }
-          );
-
-          if (updatedPlan) {
-            console.log(`✅ Base plan deactivated for ${user.userId}`);
-          } else {
-            console.log(`⚠ No active userPlan found for ${user.userId}`);
-          }
+          console.log(`Base plan deactivated for ${plan.userId}`);
         }
       }
     } catch (err) {
@@ -811,28 +775,27 @@ return res.send({status:"error",message:`plan error ${error.message}`})
     }
   };
   const deactivateAddOnsPlansForUser = async () => {
-  const users = await userModel.find({
-    "details.plan.addonsPlan.isActive": true
-  });
-
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
-  for (const user of users) {
-    const addonsPlan = user.details?.plan?.addonsPlan;
+  const activePlans = await addOnsUserModel.find({ isActive: true });
 
-    if (!addonsPlan?.endDate) continue;
+  for (const plan of activePlans) {
+    if (!plan.endDate) continue;
 
-    const endDate = parseDate(addonsPlan.endDate);
-
+    const endDate = parseDate(plan.endDate);
     if (!endDate) continue;
 
     endDate.setUTCHours(0, 0, 0, 0);
 
     if (today > endDate) {
+      await addOnsUserModel.updateOne(
+        { _id: plan._id },
+        { $set: { isActive: false, updatedDate: new Date() } }
+      );
 
       await userModel.updateOne(
-        { _id: user._id },
+        { userId: plan.userId, "details.plan.addonsPlan.isActive": true },
         {
           $set: {
             "details.plan.addonsPlan.isActive": false,
@@ -841,51 +804,34 @@ return res.send({status:"error",message:`plan error ${error.message}`})
         }
       );
 
-      await addOnsUserModel.updateMany(
-        {
-          userId: user.userId,
-          isActive: true
-        },
-        {
-          $set: {
-            isActive: false,
-            updatedDate: new Date()
-          }
-        }
-      );
-
-      console.log(
-        `Addons plan deactivated for user ${user.userId}`
-      );
+      console.log(`Addons plan deactivated for user ${plan.userId}`);
     }
   }
   };
 
  const deactivateJobPlansForUser = async () => {
 
-  const users = await userModel.find({
-    "details.plan.jobPlan.isActive": true
-  });
-
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
-  for (const user of users) {
+  const activePlans = await jobPlanUserModel.find({ isActive: true });
 
-    const jobPlan = user.details?.plan?.jobPlan;
+  for (const plan of activePlans) {
+    if (!plan.endDate) continue;
 
-    if (!jobPlan?.endDate) continue;
-
-    const endDate = parseDate(jobPlan.endDate);
-
+    const endDate = parseDate(plan.endDate);
     if (!endDate) continue;
 
     endDate.setUTCHours(0, 0, 0, 0);
 
     if (today > endDate) {
+      await jobPlanUserModel.updateOne(
+        { _id: plan._id },
+        { $set: { isActive: false, updatedDate: new Date() } }
+      );
 
       await userModel.updateOne(
-        { _id: user._id },
+        { userId: plan.userId, "details.plan.jobPlan.isActive": true },
         {
           $set: {
             "details.plan.jobPlan.isActive": false,
@@ -894,22 +840,7 @@ return res.send({status:"error",message:`plan error ${error.message}`})
         }
       );
 
-      await jobPlanUserModel.updateMany(
-        {
-          userId: user.userId,
-          isActive: true
-        },
-        {
-          $set: {
-            isActive: false,
-            updatedDate: new Date()
-          }
-        }
-      );
-
-      console.log(
-        `Job plan deactivated for user ${user.userId}`
-      );
+      console.log(`Job plan deactivated for user ${plan.userId}`);
     }
   }
 };
@@ -950,29 +881,27 @@ return res.send({status:"error",message:`plan error ${error.message}`})
 // };
 const deactivateWebinarPlansForUser = async () => {
 
-  const users = await userModel.find({
-    "details.plan.webinarPlan.isActive": true
-  });
-
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
-  for (const user of users) {
+  const activePlans = await webinarPlanuserModel.find({ isActive: true });
 
-    const webinarPlan = user.details?.plan?.webinarPlan;
+  for (const plan of activePlans) {
+    if (!plan.endDate) continue;
 
-    if (!webinarPlan?.endDate) continue;
-
-    const endDate = parseDate(webinarPlan.endDate);
-
+    const endDate = parseDate(plan.endDate);
     if (!endDate) continue;
 
     endDate.setUTCHours(0, 0, 0, 0);
 
     if (today > endDate) {
+      await webinarPlanuserModel.updateOne(
+        { _id: plan._id },
+        { $set: { isActive: false, updatedDate: new Date() } }
+      );
 
       await userModel.updateOne(
-        { _id: user._id },
+        { userId: plan.userId, "details.plan.webinarPlan.isActive": true },
         {
           $set: {
             "details.plan.webinarPlan.isActive": false,
@@ -981,22 +910,7 @@ const deactivateWebinarPlansForUser = async () => {
         }
       );
 
-      await webinarPlanuserModel.updateMany(
-        {
-          userId: user.userId,
-          isActive: true
-        },
-        {
-          $set: {
-            isActive: false,
-            updatedDate: new Date()
-          }
-        }
-      );
-
-      console.log(
-        `Webinar plan deactivated for user ${user.userId}`
-      );
+      console.log(`Webinar plan deactivated for user ${plan.userId}`);
     }
   }
 };
@@ -1040,29 +954,27 @@ const deactivateWebinarPlansForUser = async () => {
 // };
   const deactivatePostImagePlansForUser = async () => {
 
-    const users = await userModel.find({
-      "details.plan.posterPlan.isActive": true
-    });
-
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    for (const user of users) {
+    const activePlans = await postImagesuserModel.find({ isActive: true });
 
-      const posterPlan = user.details?.plan?.posterPlan;
+    for (const plan of activePlans) {
+      if (!plan.endDate) continue;
 
-      if (!posterPlan?.endDate) continue;
-
-      const endDate = parseDate(posterPlan.endDate);
-
+      const endDate = parseDate(plan.endDate);
       if (!endDate) continue;
 
       endDate.setUTCHours(0, 0, 0, 0);
 
       if (today > endDate) {
+        await postImagesuserModel.updateOne(
+          { _id: plan._id },
+          { $set: { isActive: false, updatedDate: new Date() } }
+        );
 
         await userModel.updateOne(
-          { _id: user._id },
+          { userId: plan.userId, "details.plan.posterPlan.isActive": true },
           {
             $set: {
               "details.plan.posterPlan.isActive": false,
@@ -1071,22 +983,7 @@ const deactivateWebinarPlansForUser = async () => {
           }
         );
 
-        await postImagesuserModel.updateMany(
-          {
-            userId: user.userId,
-            isActive: true
-          },
-          {
-            $set: {
-              isActive: false,
-              updatedDate: new Date()
-            }
-          }
-        );
-
-        console.log(
-          `Poster plan deactivated for user ${user.userId}`
-        );
+        console.log(`Poster plan deactivated for user ${plan.userId}`);
       }
     }
   };
