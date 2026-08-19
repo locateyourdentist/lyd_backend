@@ -198,36 +198,73 @@ res.send({Status:"success",message:error.message})
   }
 };
 
-  exports.create_sale_post=async(req,res)=>{
-
+  exports.create_sale_post = async (req, res) => {
   try {
-    const { userId, userType, mobileNumber, message, price } = req.body;
+    const {
+      userId,
+      userType,
+      mobileNumber,
+      message,
+      price
+    } = req.body;
 
-    const quota = await getRemainingPosterQuota(userId);
-    if (!quota.planActive || quota.remaining <= 0) {
-      return res.json({
-        status: 'Error',
-        message: 'Your plan has expired. Please purchase a new plan to continue.'
-      });
+    // Check superAdmin first
+    const isSuperAdmin = req.user?.userType === "superAdmin";
+
+    let quota = null;
+
+    if (!isSuperAdmin) {
+      quota = await getRemainingPosterQuota(userId);
+
+      if (!quota || !quota.planActive) {
+        return res.status(403).json({
+          status: "Error",
+          message: "Your plan has expired. Please purchase a new plan to continue."
+        });
+      }
+
+      if (quota.remaining <= 0) {
+        return res.status(403).json({
+          status: "Error",
+          message: "You have reached your sale post limit for this plan."
+        });
+      }
     }
-
     const imageUrls = await Promise.all(
-      (req.files || []).map((file) => uploadToS3(file, `salePost/${userId}`))
+      (req.files || []).map((file) =>
+        uploadToS3(file, `salePost/${userId}`)
+      )
     );
 
-    const post = await SalePost.create({
+    const postData = {
       userId,
       userType,
       mobileNumber,
       message,
       price,
       images: imageUrls,
-      startDate: quota.startDate,
-      endDate: quota.endDate,
+    };
+
+    // Add dates only for users with a plan/quota
+    if (!isSuperAdmin && quota) {
+      postData.startDate = quota.startDate;
+      postData.endDate = quota.endDate;
+    }
+
+    const post = await SalePost.create(postData);
+
+    return res.status(201).json({
+      status: "Success",
+      message: "Sale post created successfully",
+      data: post
     });
 
-    res.json({ status: 'Success', message: 'Sale post created', data: post });
   } catch (err) {
-    res.status(500).json({ status: 'Error', message: err.message });
+    console.error("create_sale_post error:", err);
+
+    return res.status(500).json({
+      status: "Error",
+      message: err.message || "Something went wrong"
+    });
   }
 };
