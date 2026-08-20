@@ -3156,22 +3156,22 @@ exports.getUploadImages = async (req, res) => {
   const { userId, fcmToken, userType } = req.body;
 
   try {
-    if (!userId || !fcmToken || !userType) {
+    if (!userId || !fcmToken) {
       return res.send({
         status: "error",
         message: "missing fields"
       });
     }
 
+    const setFields = {
+      fcmToken: fcmToken,
+      updatedDate: new Date()
+    };
+    if (userType) setFields.userType = userType;
+
     const savedToken = await fcmModel.findOneAndUpdate(
       { userId },
-      {
-        $set: {
-          fcmToken: fcmToken,
-          userType: userType,
-          updatedDate: new Date()
-        }
-      },
+      { $set: setFields },
       {
         new: true,
         upsert: true
