@@ -129,6 +129,17 @@ exports.gettextEditorContentForAll = async (req, res) => {
     res.send({ status: "error", message: err.message });
   }
 };
+exports.gettextEditorContentPrivacyPolicy = async (req, res) => {
+  try {
+    const allContacts = await privacyPolicyModel.find({category:"Privacy Policy"}); 
+    if (!allContacts || allContacts.length === 0) {
+      return res.send({ status: "error", message: "No Privacy Policy found" });
+    }
+    res.send({status: "success",data: allContacts});
+  } catch (err) {
+    res.send({ status: "error", message: err.message });
+  }
+};
 //  exports.filterContacts = async (req, res) => {
 //   try {
 //     const {
