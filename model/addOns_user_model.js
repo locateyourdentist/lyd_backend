@@ -14,6 +14,9 @@ const  addOnsPlanUserModel=new mongoose.Schema({
     addOnsPlanId:{
         type:String
     },
+    addOnsPlanName:{
+        type:String
+    },
     details:{type:Object
     },
     price:{

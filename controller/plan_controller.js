@@ -339,10 +339,10 @@ return res.send({status:"error",message:"no plans found"})
 exports.createUserPlan=async(req,res)=>{
     const{userId,planId,planName,price,startDate,endDate, imageCount, imageSize, videoCount, videoSize}=req.body;
 try{
-  if(!userId||!planId||!planName||!startDate||!endDate||imageCount||imageSize||videoCount||videoSize){
+  if(!userId||!planId||!planName||!startDate||!endDate){
   return res.send({status:"error",message:"missing fields"})
   }
- const checkAlreadyPlan=await  userPlanModel.findOneAndUpdate({userId:userId}, { $set: { isActive: false } },{ new: true })
+ const checkAlreadyPlan=await  userPlanModel.updateMany({userId:userId,isActive:true}, { $set: { isActive: false, updatedDate: new Date() } })
 
 // console.log(`ls${checkAlreadyPlan}`)
 // if(checkAlreadyPlan.length>0){
@@ -355,7 +355,10 @@ const newPlanIdObj = await planIdModel.findOneAndUpdate(
 console.log(newPlanIdObj.planUserId)
 //const savePlan=await planCreate.save();
 const checkPlanIdExists=await planModel.findOne({planId:planId,isActive:true})
-const planCreate=new userPlanModel({userId,planUserId:newPlanIdObj.planUserId,planId,details: checkPlanIdExists.details||"",planName:planName,startDate:endDate,price:price,imageCount:imageCount, imageSize:imageSize, videoCount:videoCount, videoSize:videoSize})
+if(!checkPlanIdExists){
+    return res.send({status:"error",message:"Plan not found"})
+}
+const planCreate=new userPlanModel({userId,planUserId:newPlanIdObj.planUserId,planId,details: checkPlanIdExists.details||"",planName:planName,startDate:startDate,endDate:endDate,price:price,isActive:true,imageCount:imageCount, imageSize:imageSize, videoCount:videoCount, videoSize:videoSize})
 const savePlan=await planCreate.save();
 //const checkPlanIdExists=await planModel.findOne({planId:planId,isActive:true})
 console.log(checkPlanIdExists.details)
@@ -376,7 +379,7 @@ console.log(checkPlanIdExists.details)
   },
   { new: true }
 );
-if(!planCreate){
+if(!savePlan){
     return res.send({status:"error",message:"plan not created"})
 }
 return res.send({status:"success",data:savePlan})
@@ -398,8 +401,7 @@ if(!userId||!addOnsPlanId||!addOnsPlanName|| !startDate||!endDate){
 // if(checkBasePlanActive.length==0){
 //   return res.send({status:"error",message:"your base plan is not activated.please buy plan"})
 // }
-const checkAlreadyPlan=await  addOnsUserModel.findOneAndUpdate({userId:userId}, { $set: { isActive: false } },
-  { new: true })
+const checkAlreadyPlan=await  addOnsUserModel.updateMany({userId:userId,isActive:true}, { $set: { isActive: false, updatedDate: new Date() } })
 // console.log(`ls${checkAlreadyPlan}`)
 // if(checkAlreadyPlan.length>0){
 // return res.send({status:"error",message:"you are plan already activated"})
@@ -450,8 +452,7 @@ if(!userId||!jobPlansId||!jobPlansName||!startDate||!endDate||!price){
 // if(checkBasePlanActive.length==0){
 //   return res.send({status:"error",message:"your base plan is not activated.please buy plan"})
 // }
-const checkAlreadyPlan=await  jobPlanUserModel.findOneAndUpdate({userId:userId}, { $set: { isActive: false } },
-  { new: true })
+const checkAlreadyPlan=await  jobPlanUserModel.updateMany({userId:userId,isActive:true}, { $set: { isActive: false, updatedDate: new Date() } })
 // console.log(`ls${checkAlreadyPlan}`)
 // if(checkAlreadyPlan.length>0){
 // return res.send({status:"error",message:"you are plan already activated"})
@@ -504,8 +505,7 @@ if(!userId||!webinarPlanId||!webinarUserPlansName||!startDate||!endDate||!price)
 // if(checkPlanActive.length==0){
 //   return res.send({status:"error",message:"your plan is not activated.please buy plan"})
 // }
-const checkAlreadyPlan=await  webinarPlanuserModel.findOneAndUpdate({userId:userId}, { $set: { isActive: false } },
-  { new: true })
+const checkAlreadyPlan=await  webinarPlanuserModel.updateMany({userId:userId,isActive:true}, { $set: { isActive: false, updatedDate: new Date() } })
 //console.log(`ls${checkAlreadyPlan}`)
 // if(checkAlreadyPlan.length>0){
 // return res.send({status:"error",message:"you are plan already activated"})
@@ -555,8 +555,7 @@ if(!userId||!postImagesPlanId||!postPlanName||!startDate||!endDate){
 // if(checkPlanActive.length==0){
 //   return res.send({status:"error",message:"your base plan is not activated.please buy plan"})
 // }
-const checkAlreadyPlan=await  postImagesuserModel.findOneAndUpdate({userId:userId}, { $set: { isActive: false } },
-  { new: true })
+const checkAlreadyPlan=await  postImagesuserModel.updateMany({userId:userId,isActive:true}, { $set: { isActive: false, updatedDate: new Date() } })
 //console.log(`ls${checkAlreadyPlan}`)
 // if(checkAlreadyPlan.length>0){
 // return res.send({status:"error",message:"you are plan already activated"})
@@ -611,29 +610,25 @@ await deactivateAddOnsPlansForUser();
 await deactivateJobPlansForUser();
 await deactivateWebinarPlansForUser();
 await deactivatePostImagePlansForUser();
-const checkPlan=await userPlanModel.find({userId:userId,isActive:true})
-if(!checkPlan){
-    res.send({status:"error",message:"There is no Baseplan found"})
-}
  const basePlan = await userPlanModel.findOne(
       { userId, isActive: true }
-    );
+    ).sort({ createdDate: -1 });
 
     const addonsPlan = await addOnsUserModel.findOne(
       { userId, isActive: true }
-    );
+    ).sort({ createdDate: -1 });
 
     const jobPlan = await jobPlanUserModel.findOne(
       { userId, isActive: true }
-    );
+    ).sort({ createdDate: -1 });
 
     const webinarPlan = await webinarPlanuserModel.findOne(
       { userId, isActive: true }
-    );
+    ).sort({ createdDate: -1 });
 
     const posterPlan = await postImagesuserModel.findOne(
       { userId, isActive: true }
-    );
+    ).sort({ createdDate: -1 });
 
     // return res.send({
     //   status: "success",
@@ -669,7 +664,7 @@ if(!checkPlan){
                 startDate: addonsPlan.startDate,
                 endDate: addonsPlan.endDate,
                 isActive: addonsPlan.isActive,
-                name: addonsPlan.addOnsPlanId,
+                name: addonsPlan.addOnsPlanName,
                 price: addonsPlan.price
               }
             : null,
