@@ -15,5 +15,6 @@ router.post("/addTextEditorContentForAll",auth,contactController.addtextEditorCo
 router.post("/gettextEditorContentForAll",contactController.gettextEditorContentForAll)
 router.get("/privacy-policy",contactController.gettextEditorContentPrivacyPolicy)
 router.post("/get_public_contacts", auth,contactController.getPublicContacts);
+router.post("/delete_public_contact", auth,contactController.deletePublicContact);
 
 module.exports = router;

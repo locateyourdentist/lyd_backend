@@ -500,6 +500,33 @@ exports.getContactsBySender = async (req, res) => {
   }
 };
 
+  exports.deletePublicContact = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.send({ status: "error", message: "Invalid ID" });
+    }
+
+    const deletedContact = await publicContactModel.findByIdAndDelete(id);
+
+    if (!deletedContact) {
+      return res.send({ status: "error", message: "Feedback not found" });
+    }
+
+    res.send({
+      status: "success",
+      message: "Feedback deleted successfully",
+      data: deletedContact,
+    });
+  } catch (error) {
+    res.send({
+      status: "error",
+      message: error.message,
+    });
+  }
+ };
+
   exports.addtextEditorContentPolicy = async (req, res) => {
   try {
     const { category, details } = req.body;

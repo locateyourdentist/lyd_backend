@@ -253,9 +253,7 @@ exports.create_sale_post = async (req, res) => {
       postData.startDate = quota.startDate;
       postData.endDate = quota.endDate;
     }
-
     const post = await SalePost.create(postData);
-
     return res.status(201).json({
       status: "Success",
       message: "Sale post created successfully",
@@ -263,7 +261,6 @@ exports.create_sale_post = async (req, res) => {
     });
   } catch (err) {
     console.error("create_sale_post error:", err);
-
     return res.status(500).json({
       status: "Error",
       message: err.message || "Something went wrong",
