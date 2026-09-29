@@ -1,116 +1,141 @@
-const express=require('express');
-const userModel=require('../model/user');
-const userIds=require('../model/userId')
-const { error } = require('winston');
-const bcryptjs = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const express = require("express");
+const userModel = require("../model/user");
+const userIds = require("../model/userId");
+const { error } = require("winston");
+const bcryptjs = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json());
-const fs=require('fs');
-const path=require('path')
-const authMiddle=require('../middleware/auth');
-const { Resend } = require('resend');
-const bodyParser = require('body-parser');
+const fs = require("fs");
+const path = require("path");
+const authMiddle = require("../middleware/auth");
+const { Resend } = require("resend");
+const bodyParser = require("body-parser");
 //const { count } = require('console');
-const secret = 'LYD2025';
+const secret = "LYD2025";
 const handlebars = require("handlebars");
-const planUserModel=require('../model/plan_user_model')
-const axios=require('axios')
-const jobApplicationModel=require('../model/jobModel')
-const uploadAdminImages=require('../model/post_images_admin_modes')
-const fcmModel=require('../model/fcm_token_model')
-const mongoose=require('mongoose')
-const planModel=require('../model/plan_model')
-const userPlanModel=require('../model/plan_user_model')
-const auth=require('../middleware/auth')
-const { uploadToS3 ,deleteFromS3 } = require("../file_uploadImage");
-const userLoginModel=require('../model/loginmodel')
-const appLogoModel=require('../model/app_logo')
-const serviceModel=require('../model/serviceModel')
-const { getNotificationContent, dispatchWhatsapp } = require('./notification_content_service')
-const { getRemainingPosterQuota } = require('./poster_quota_service')
+const planUserModel = require("../model/plan_user_model");
+const axios = require("axios");
+const jobApplicationModel = require("../model/jobModel");
+const uploadAdminImages = require("../model/post_images_admin_modes");
+const fcmModel = require("../model/fcm_token_model");
+const mongoose = require("mongoose");
+const planModel = require("../model/plan_model");
+const userPlanModel = require("../model/plan_user_model");
+const auth = require("../middleware/auth");
+const { uploadToS3, deleteFromS3 } = require("../file_uploadImage");
+const userLoginModel = require("../model/loginmodel");
+const appLogoModel = require("../model/app_logo");
+const serviceModel = require("../model/serviceModel");
+const {
+  getNotificationContent,
+  dispatchWhatsapp,
+} = require("./notification_content_service");
+const { getRemainingPosterQuota } = require("./poster_quota_service");
 
-
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 if (!resend) {
-  console.error('[Mail] RESEND_API_KEY is not set — email sending is disabled until it is configured.');
+  console.error(
+    "[Mail] RESEND_API_KEY is not set — email sending is disabled until it is configured.",
+  );
 }
 
 const sendMail = async ({ from, to, subject, html }) => {
-  if (!resend) throw new Error("Email sending is not configured (missing RESEND_API_KEY)");
+  if (!resend)
+    throw new Error("Email sending is not configured (missing RESEND_API_KEY)");
   const toList = Array.isArray(to)
     ? to
-    : String(to).split(",").map((e) => e.trim()).filter(Boolean);
-  const { data, error } = await resend.emails.send({ from, to: toList, subject, html });
+    : String(to)
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+  const { data, error } = await resend.emails.send({
+    from,
+    to: toList,
+    subject,
+    html,
+  });
   if (error) throw new Error(error.message || "Failed to send email");
   return data;
 };
 exports.deleteAwsfile = async (req, res) => {
-  const { fileUrl,name} = req.body;
+  const { fileUrl, name } = req.body;
   if (!fileUrl) {
-    return res.send({ status:"error", message: "fileUrl is required" });
+    return res.send({ status: "error", message: "fileUrl is required" });
   }
   try {
     console.log("Deleting fileUrl:", fileUrl);
     const result = await deleteFromS3(fileUrl);
-    console.log("AWS file delete:", JSON.stringify(result, null, 2));    
-    if(name=='postImage'){
-      const record = await uploadAdminImages.findOne({ "posterImages.path": fileUrl });
+    console.log("AWS file delete:", JSON.stringify(result, null, 2));
+    if (name == "postImage") {
+      const record = await uploadAdminImages.findOne({
+        "posterImages.path": fileUrl,
+      });
       //console.log("Found record:", record);
-    const deleteFile=  await uploadAdminImages.updateOne(
-    { "posterImages.path": fileUrl },
-    {
-    $pull: {
-      posterImages: { path: fileUrl }
-    }
-  });
-   console.log(`delete${deleteFile}`)
+      const deleteFile = await uploadAdminImages.updateOne(
+        { "posterImages.path": fileUrl },
+        {
+          $pull: {
+            posterImages: { path: fileUrl },
+          },
+        },
+      );
+      console.log(`delete${deleteFile}`);
     }
     let record;
-      if(name=='appLogo'){
-         record = await appLogoModel.findOneAndDelete({ appLogo: fileUrl });
-          if (!record) {
-  return res.json({ status: "error", message: "File not found" });
-}
+    if (name == "appLogo") {
+      record = await appLogoModel.findOneAndDelete({ appLogo: fileUrl });
+      if (!record) {
+        return res.json({ status: "error", message: "File not found" });
+      }
     }
-     if(name=='serviceImage'){
-        const result = await serviceModel.updateOne(
-  { image: fileUrl },
-  {
-    $pull: {
-      image: fileUrl
+    if (name == "serviceImage") {
+      const result = await serviceModel.updateOne(
+        { image: fileUrl },
+        {
+          $pull: {
+            image: fileUrl,
+          },
+        },
+      );
+
+      console.log(result);
+      if (!result) {
+        return res.json({ status: "error", message: "File not found" });
+      }
     }
-  }
-);
 
-console.log(result);
-          if (!result) {
-  return res.json({ status: "error", message: "File not found" });
-}
-     }
-
-    res.send({ status:"success", message: "File deleted successfully", result });
+    res.send({
+      status: "success",
+      message: "File deleted successfully",
+      result,
+    });
   } catch (err) {
     console.error(err);
-    res.send({ status:"error", message:"Failed to delete file", error: err.message });
+    res.send({
+      status: "error",
+      message: "Failed to delete file",
+      error: err.message,
+    });
   }
 };
 
 const sendRegistrationOtp = async (userId) => {
   try {
     const generateOtp = Math.floor(1000 + Math.random() * 9000);
-    const otpExpiry = Date.now() + 10 * 60 * 1000; 
-    console.log('rregister otp')
+    const otpExpiry = Date.now() + 10 * 60 * 1000;
+    console.log("rregister otp");
 
-    const user=  await userModel.findOneAndUpdate(
+    const user = await userModel.findOneAndUpdate(
       { userId: userId },
       {
         $set: {
           "details.emailOtp": generateOtp,
           "details.emailOtpExpiry": otpExpiry,
         },
-      }
+      },
     );
 
     // const transporter = nodemailer.createTransport({
@@ -122,38 +147,46 @@ const sendRegistrationOtp = async (userId) => {
     // });
 
     // Render email template
-    const templatePath = path.join(__dirname, "template", "verify_register_email.hbs");
+    const templatePath = path.join(
+      __dirname,
+      "template",
+      "verify_register_email.hbs",
+    );
     const source = fs.readFileSync(templatePath, "utf8");
     const template = handlebars.compile(source);
     //console.log(`https://lyd-backend-mjvx.onrender.com/lyd/user/verify_password`)
 
-    const content = await getNotificationContent('otp_registration', {
-      emailSubject: 'LYD OTP Verification Mail',
-      title: 'Welcome to LYD!',
-      message: 'Thank you for registering with LYD. Please use the OTP below to verify your email address. This OTP is valid for 10 minutes.',
-      whatsappVariables: ['name', 'otp'],
+    const content = await getNotificationContent("otp_registration", {
+      emailSubject: "LYD OTP Verification Mail",
+      title: "Welcome to LYD!",
+      message:
+        "Thank you for registering with LYD. Please use the OTP below to verify your email address. This OTP is valid for 10 minutes.",
+      whatsappVariables: ["name", "otp"],
     });
 
-      const htmlContent = template({
+    const htmlContent = template({
       otp: generateOtp,
       name: user.name ?? "",
       year: new Date().getFullYear(),
-      isRegister:true,
+      isRegister: true,
       title: content.title,
       message: content.message,
-      verification_url: `https://lyd-backend-mjvx.onrender.com/lyd/user/verify_password`
+      verification_url: `https://lyd-backend-mjvx.onrender.com/lyd/user/verify_password`,
       //`${process.env.base_url}/lyd/user/verify_password`
     });
-     console.log(`sslog${user.email}`)
+    console.log(`sslog${user.email}`);
     // Send mail
-     const info= await sendMail({
-      from: '"LYD" <developer.catchytechnologies@gmail.com>',
+    const info = await sendMail({
+      from: `"LYD" <${process.env.nodemail_username}>`,
       to: user.email,
       subject: content.emailSubject,
       html: htmlContent,
     });
     console.log("Mail sent:", info?.id);
-    await dispatchWhatsapp(content, user.mobileNumber, { name: user.name ?? "", otp: generateOtp });
+    await dispatchWhatsapp(content, user.mobileNumber, {
+      name: user.name ?? "",
+      otp: generateOtp,
+    });
     return { status: "success", message: "OTP sent to email" };
   } catch (err) {
     return { status: "error", message: err.message };
@@ -193,7 +226,6 @@ const sendRegistrationOtp = async (userId) => {
 //     return res.json({ status: "error", message: error.message });
 //   }
 // };
-
 
 // exports.getAllUserDetails = async (req, res) => {
 //   try {
@@ -240,11 +272,11 @@ const sendRegistrationOtp = async (userId) => {
 //   //     $geometry: {
 //   //       type: "Point",
 //   //       coordinates: [
-//   //         Number(filters.longitude), 
-//   //         Number(filters.latitude)  
+//   //         Number(filters.longitude),
+//   //         Number(filters.latitude)
 //   //       ]
 //   //     },
-//   //     $maxDistance: Number(maxDistance) 
+//   //     $maxDistance: Number(maxDistance)
 //   //   }
 //   // };
 // }
@@ -257,7 +289,7 @@ const sendRegistrationOtp = async (userId) => {
 //   $switch: {
 //     branches: [
 //       // Highest priority: addonsPlan.state=true and active
-//       { 
+//       {
 //         case: {
 //           $and: [
 //             { $eq: ["$details.plan.addonsPlan.isActive", true] },
@@ -266,7 +298,7 @@ const sendRegistrationOtp = async (userId) => {
 //         },
 //         then: 1
 //       },
-//       { 
+//       {
 //         case: {
 //           $and: [
 //             { $eq: ["$details.plan.addonsPlan.isActive", true] },
@@ -275,7 +307,7 @@ const sendRegistrationOtp = async (userId) => {
 //         },
 //         then: 2
 //       },
-//       { 
+//       {
 //         case: {
 //           $and: [
 //             { $eq: ["$details.plan.addonsPlan.isActive", true] },
@@ -284,7 +316,7 @@ const sendRegistrationOtp = async (userId) => {
 //         },
 //         then: 3
 //       },
-//       { 
+//       {
 //         case: {
 //           $and: [
 //             { $eq: ["$details.plan.addonsPlan.isActive", true] },
@@ -302,7 +334,7 @@ const sendRegistrationOtp = async (userId) => {
 //         then: 6
 //       }
 //     ],
-//     default: 99 
+//     default: 99
 //   }
 // }
 //         }
@@ -366,7 +398,7 @@ exports.getAllUserDetails = async (req, res) => {
 
     const trimmedSearch = search?.trim();
     let matchQuery = {};
-  //await sendRegistrationOtp("LYD75"); 
+    //await sendRegistrationOtp("LYD75");
 
     if (trimmedSearch) {
       const regex = { $regex: trimmedSearch, $options: "i" };
@@ -381,7 +413,7 @@ exports.getAllUserDetails = async (req, res) => {
         { "address.state": regex },
         { "address.district": regex },
         { "address.city": regex },
-        {"address.area":regex},
+        { "address.area": regex },
         { "details.name": regex },
       ];
     }
@@ -393,41 +425,44 @@ exports.getAllUserDetails = async (req, res) => {
     // if (filters.state) matchQuery["address.state"] = filters.state;
     // if (filters.district) matchQuery["address.district"] = filters.district;
     // if (filters.city) matchQuery["address.city"] = filters.city;
-if (filters.state)
-  matchQuery["address.state"] = { $regex: `^${filters.state.trim()}$`, $options: "i" };
-// if (filters.district)
-//   matchQuery["address.district"] = { $regex: `^${filters.district.trim()}$`, $options: "i" };
+    if (filters.state)
+      matchQuery["address.state"] = {
+        $regex: `^${filters.state.trim()}$`,
+        $options: "i",
+      };
+    // if (filters.district)
+    //   matchQuery["address.district"] = { $regex: `^${filters.district.trim()}$`, $options: "i" };
 
-if (filters.district) {
-  if (Array.isArray(filters.district)) {
-    matchQuery["address.district"] = { $in: filters.district };
-  } else {
-    matchQuery["address.district"] = {
-      $regex: `^${filters.district.trim()}$`,
-      $options: "i"
-    };
-  }
-}
-if (filters.area) {
-  if (Array.isArray(filters.area)) {
-    matchQuery["address.area"] = { $in: filters.area };
-  } else {
-    matchQuery["address.area"] = {
-      $regex: `^${filters.area.trim()}$`,
-      $options: "i"
-    };
-  }
-}
-if (filters.city) {
-  if (Array.isArray(filters.city)) {
-    matchQuery["address.city"] = { $in: filters.city };
-  } else {
-    matchQuery["address.city"] = {
-      $regex: `^${filters.city.trim()}$`,
-      $options: "i"
-    };
-  }
-}
+    if (filters.district) {
+      if (Array.isArray(filters.district)) {
+        matchQuery["address.district"] = { $in: filters.district };
+      } else {
+        matchQuery["address.district"] = {
+          $regex: `^${filters.district.trim()}$`,
+          $options: "i",
+        };
+      }
+    }
+    if (filters.area) {
+      if (Array.isArray(filters.area)) {
+        matchQuery["address.area"] = { $in: filters.area };
+      } else {
+        matchQuery["address.area"] = {
+          $regex: `^${filters.area.trim()}$`,
+          $options: "i",
+        };
+      }
+    }
+    if (filters.city) {
+      if (Array.isArray(filters.city)) {
+        matchQuery["address.city"] = { $in: filters.city };
+      } else {
+        matchQuery["address.city"] = {
+          $regex: `^${filters.city.trim()}$`,
+          $options: "i",
+        };
+      }
+    }
     if (filters.userType) {
       matchQuery.userType = {
         $regex: `^${filters.userType.trim()}$`,
@@ -441,11 +476,21 @@ if (filters.city) {
         $options: "i",
       };
     }
-    if (Array.isArray(filters.availableLocations) && filters.availableLocations.length) {
-      matchQuery["details.availableLocations"] = { $in: filters.availableLocations };
+    if (
+      Array.isArray(filters.availableLocations) &&
+      filters.availableLocations.length
+    ) {
+      matchQuery["details.availableLocations"] = {
+        $in: filters.availableLocations,
+      };
     }
-    if (Array.isArray(filters.availableTiming) && filters.availableTiming.length) {
-      matchQuery["details.availableTiming.slot"] = { $in: filters.availableTiming };
+    if (
+      Array.isArray(filters.availableTiming) &&
+      filters.availableTiming.length
+    ) {
+      matchQuery["details.availableTiming.slot"] = {
+        $in: filters.availableTiming,
+      };
     }
 
     let pipeline = [];
@@ -457,8 +502,8 @@ if (filters.city) {
     //       near: {
     //         type: "Point",
     //         coordinates: [
-    //           Number(filters.longitude), 
-    //           Number(filters.latitude),  
+    //           Number(filters.longitude),
+    //           Number(filters.latitude),
     //         ],
     //       },
     //       distanceField: "distance",
@@ -470,57 +515,50 @@ if (filters.city) {
     // } else {
     //   pipeline.push({ $match: matchQuery });
     // }
-if (filters.latitude && filters.longitude) {
-  //const distance = filters.distance ? filters.distance : 0;
-const distance = Number(filters.distance) || 0;
+    if (filters.latitude && filters.longitude) {
+      //const distance = filters.distance ? filters.distance : 0;
+      const distance = Number(filters.distance) || 0;
 
-  // pipeline.push({
-  //   $geoNear: {
-  //     near: {
-  //       type: "Point",
-  //       coordinates: [
-  //         Number(filters.longitude),
-  //         Number(filters.latitude),
-  //       ],
-  //     },
-  //     distanceField: "distance",
-  //     maxDistance: distance * 1000,
-  //     spherical: true,
-  //   },
-  // });
-  pipeline.push({
-  $geoNear: {
-    near: {
-      type: "Point",
-      coordinates: [
-        Number(filters.longitude),
-        Number(filters.latitude),
-      ],
-    },
-    distanceField: "distance",
-    maxDistance: distance * 1000,
-    spherical: true,
-    query: matchQuery,
-  },
-});
-pipeline.push({
-  $addFields: {
-    distanceKm: {
-      $round: [
-        { $divide: ["$distance", 1000] },
-        2
-      ]
+      // pipeline.push({
+      //   $geoNear: {
+      //     near: {
+      //       type: "Point",
+      //       coordinates: [
+      //         Number(filters.longitude),
+      //         Number(filters.latitude),
+      //       ],
+      //     },
+      //     distanceField: "distance",
+      //     maxDistance: distance * 1000,
+      //     spherical: true,
+      //   },
+      // });
+      pipeline.push({
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [Number(filters.longitude), Number(filters.latitude)],
+          },
+          distanceField: "distance",
+          maxDistance: distance * 1000,
+          spherical: true,
+          query: matchQuery,
+        },
+      });
+      pipeline.push({
+        $addFields: {
+          distanceKm: {
+            $round: [{ $divide: ["$distance", 1000] }, 2],
+          },
+        },
+      });
+
+      if (Object.keys(matchQuery).length) {
+        pipeline.push({ $match: matchQuery });
+      }
+    } else {
+      pipeline.push({ $match: matchQuery });
     }
-  }
-});
-
-  if (Object.keys(matchQuery).length) {
-    pipeline.push({ $match: matchQuery });
-  }
-
-} else {
-  pipeline.push({ $match: matchQuery });
-}
     pipeline.push(
       {
         $addFields: {
@@ -540,7 +578,12 @@ pipeline.push({
                   case: {
                     $and: [
                       { $eq: ["$details.plan.addonsPlan.isActive", true] },
-                      { $eq: ["$details.plan.addonsPlan.details.district", true] },
+                      {
+                        $eq: [
+                          "$details.plan.addonsPlan.details.district",
+                          true,
+                        ],
+                      },
                     ],
                   },
                   then: 2,
@@ -580,10 +623,10 @@ pipeline.push({
       {
         $sort: {
           planPriority: 1,
-          distance: 1, 
+          distance: 1,
           _id: -1,
         },
-      }
+      },
     );
 
     const users = await userModel.aggregate(pipeline);
@@ -597,16 +640,14 @@ pipeline.push({
       total: users.length,
       data: users,
     });
-
   } catch (error) {
     console.error(error);
     return res.json({ status: "error", message: error.message });
   }
 };
 
- exports.userRegister = async (req, res) => {
+exports.userRegister = async (req, res) => {
   try {
-
     const {
       userId,
       name,
@@ -620,21 +661,19 @@ pipeline.push({
       location,
       oldImageUrl,
       oldCertificatesUrl,
-      oldLogoImageUrl
+      oldLogoImageUrl,
     } = req.body;
 
     let parsedAddress = {};
     let parsedDetails = {};
-   const isAdmin =
-  req.body.isAdmin === true ||
-  req.body.isAdmin === "true";
+    const isAdmin = req.body.isAdmin === true || req.body.isAdmin === "true";
     if (address) {
       try {
         parsedAddress = JSON.parse(address);
       } catch (e) {
         return res.json({
           status: "error",
-          message: "Address is not valid JSON"
+          message: "Address is not valid JSON",
         });
       }
     }
@@ -645,38 +684,28 @@ pipeline.push({
       } catch (e) {
         return res.json({
           status: "error",
-          message: "Details is not valid JSON"
+          message: "Details is not valid JSON",
         });
       }
     }
     if (userId == "0") {
-
-      if (
-        !name ||
-        !dob ||
-        !userType ||
-        !email ||
-        !mobileNumber
-      ) {
+      if (!name || !dob || !userType || !email || !mobileNumber) {
         return res.json({
           status: "error",
-          message: "Missing fields"
+          message: "Missing fields",
         });
       }
-        if (!isAdmin) {
-  const duplicateUser = await userModel.findOne({
-    $or: [
-      { email: email.trim() },
-      { mobileNumber: mobileNumber.trim() }
-    ],
-    isActive: true,
-    "adminDetails.isAdmin": false
-  });
+      if (!isAdmin) {
+        const duplicateUser = await userModel.findOne({
+          $or: [{ email: email.trim() }, { mobileNumber: mobileNumber.trim() }],
+          isActive: true,
+          "adminDetails.isAdmin": false,
+        });
 
         if (duplicateUser) {
           return res.json({
             status: "error",
-            message: "User email or mobile number already exists"
+            message: "User email or mobile number already exists",
           });
         }
       }
@@ -694,13 +723,13 @@ pipeline.push({
       const counter = await userIds.findOneAndUpdate(
         { state: state },
         { $inc: { counter: 1 } },
-        { new: true }
+        { new: true },
       );
 
       if (!counter) {
         return res.json({
           status: "error",
-          message: "State not configured"
+          message: "State not configured",
         });
       }
 
@@ -715,17 +744,15 @@ pipeline.push({
       const logoImages = [];
 
       if (req.files && req.files.length > 0) {
-
         for (const file of req.files) {
-    console.log("===============");
-    console.log("Name:", file.originalname);
-    console.log("Mime:", file.mimetype);
-    console.log("Field:", file.fieldname);
-    console.log("Size:", file.size);
+          console.log("===============");
+          console.log("Name:", file.originalname);
+          console.log("Mime:", file.mimetype);
+          console.log("Field:", file.fieldname);
+          console.log("Size:", file.size);
           const uploadedUrl = await uploadToS3(file);
 
           switch (file.fieldname) {
-
             case "image":
               images.push(uploadedUrl);
               break;
@@ -742,11 +769,10 @@ pipeline.push({
       }
 
       const addressUpdate = {
-
         addressLine1: parsedAddress.addressLine1 || "",
-        addressLine2:parsedAddress.addressLine2 || "",
+        addressLine2: parsedAddress.addressLine2 || "",
         addressLine1: parsedAddress.addressLine1 || "",
-        addressLine2:parsedAddress.addressLine2 || "",
+        addressLine2: parsedAddress.addressLine2 || "",
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
@@ -755,16 +781,15 @@ pipeline.push({
       };
 
       if (parsedAddress.latitude && parsedAddress.longitude) {
-
         addressUpdate.geoLocation = {
           type: "Point",
           coordinates: [
             Number(parsedAddress.longitude),
-            Number(parsedAddress.latitude)
-          ]
+            Number(parsedAddress.latitude),
+          ],
         };
       }
-       const newUser = new userModel({
+      const newUser = new userModel({
         userId: newUserId,
         name,
         dob,
@@ -780,54 +805,53 @@ pipeline.push({
         logoImage: logoImages,
         adminDetails: {
           isAdmin: req.body.isAdmin || false,
-          adminId: req.body.isAdmin
-              ? req.body.adminId : "",
-          branch: []
-        }
+          adminId: req.body.isAdmin ? req.body.adminId : "",
+          branch: [],
+        },
       });
-     await newUser.save();
-     console.log(JSON.stringify(newUser.toObject(), null, 2));
+      await newUser.save();
+      console.log(JSON.stringify(newUser.toObject(), null, 2));
 
       if (
         userType !== "admin" &&
         userType !== "superAdmin" &&
-        userType !== "Job Seekers"&&!isAdmin
+        userType !== "Job Seekers" &&
+        !isAdmin
       ) {
-
         await assignFreePlanToUser(newUserId, userType);
       }
 
       res.json({
         status: "success",
         message: "User registered successfully",
-        data: newUser
+        data: newUser,
       });
-      axios.post(`${process.env.base_url}/lyd/user/create_email`, {
-        userId: newUserId,
-        subject: "New Registration",
-        title: "new",
-        message: "new user added successfully"
-      }).then((response) => {
-        console.log("Mail response:", response.data);
-      }).catch((mailError) => {
-        console.log("Mail send failed:", mailError.message);
-      });
+      axios
+        .post(`${process.env.base_url}/lyd/user/create_email`, {
+          userId: newUserId,
+          subject: "New Registration",
+          title: "new",
+          message: "new user added successfully",
+        })
+        .then((response) => {
+          console.log("Mail response:", response.data);
+        })
+        .catch((mailError) => {
+          console.log("Mail send failed:", mailError.message);
+        });
 
       sendRegistrationOtp(newUserId).catch((otpError) => {
         console.log("Registration OTP send failed:", otpError.message);
       });
 
       return;
-    }
-    else {
-
+    } else {
       const existingUser = await userModel.findOne({ userId });
 
       if (!existingUser) {
-
         return res.json({
           status: "error",
-          message: "User not found"
+          message: "User not found",
         });
       }
 
@@ -835,60 +859,58 @@ pipeline.push({
       let parsedOldCertificates = [];
       let parsedOldLogoImages = [];
 
-      if (oldImageUrl)
-        parsedOldImages = JSON.parse(oldImageUrl);
+      if (oldImageUrl) parsedOldImages = JSON.parse(oldImageUrl);
 
       if (oldCertificatesUrl)
         parsedOldCertificates = JSON.parse(oldCertificatesUrl);
 
-      if (oldLogoImageUrl)
-        parsedOldLogoImages = JSON.parse(oldLogoImageUrl);
+      if (oldLogoImageUrl) parsedOldLogoImages = JSON.parse(oldLogoImageUrl);
 
       let profileImages = parsedOldImages || [];
       let certificatesArr = parsedOldCertificates || [];
       let logoImagesArr = parsedOldLogoImages || [];
-      
-    if (req.files && req.files.length > 0) {
-    console.log("REQ FILES =", req.files);
 
-     for (const file of req.files) {
-      console.log("FIELDNAME =", file.fieldname);
+      if (req.files && req.files.length > 0) {
+        console.log("REQ FILES =", req.files);
 
-     const uploadedUrl = await uploadToS3(file);
+        for (const file of req.files) {
+          console.log("FIELDNAME =", file.fieldname);
 
-     console.log("UPLOADED URL =", uploadedUrl);
+          const uploadedUrl = await uploadToS3(file);
 
-    switch (file.fieldname) {
-      case "image":
-        console.log("IMAGE FOUND");
-        profileImages.push(uploadedUrl);
-        break;
+          console.log("UPLOADED URL =", uploadedUrl);
 
-      case "certificates":
-        console.log("CERT FOUND");
-        certificatesArr.push(uploadedUrl);
-        break;
+          switch (file.fieldname) {
+            case "image":
+              console.log("IMAGE FOUND");
+              profileImages.push(uploadedUrl);
+              break;
 
-      case "logoImage":
-        console.log("LOGO FOUND");
-        logoImagesArr.push(uploadedUrl);
-        break;
+            case "certificates":
+              console.log("CERT FOUND");
+              certificatesArr.push(uploadedUrl);
+              break;
 
-      default:
-        console.log("UNKNOWN FIELD =", file.fieldname);
-    }
-  }
-}
-  console.log("profileImages =", profileImages);
-  console.log("certificatesArr =", certificatesArr);
+            case "logoImage":
+              console.log("LOGO FOUND");
+              logoImagesArr.push(uploadedUrl);
+              break;
+
+            default:
+              console.log("UNKNOWN FIELD =", file.fieldname);
+          }
+        }
+      }
+      console.log("profileImages =", profileImages);
+      console.log("certificatesArr =", certificatesArr);
       profileImages = [...new Set(profileImages)];
       certificatesArr = [...new Set(certificatesArr)];
       logoImagesArr = [...new Set(logoImagesArr)];
 
       // UPDATE ADDRESS
-     const addressUpdate = {
+      const addressUpdate = {
         addressLine1: parsedAddress.addressLine1 || "",
-        addressLine2:parsedAddress.addressLine2 || "",
+        addressLine2: parsedAddress.addressLine2 || "",
         state: parsedAddress.state || "",
         district: parsedAddress.district || "",
         city: parsedAddress.city || "",
@@ -897,13 +919,12 @@ pipeline.push({
       };
 
       if (parsedAddress.latitude && parsedAddress.longitude) {
-
         addressUpdate.geoLocation = {
           type: "Point",
           coordinates: [
             Number(parsedAddress.longitude),
-            Number(parsedAddress.latitude)
-          ]
+            Number(parsedAddress.latitude),
+          ],
         };
       }
       const mergedDetails = {
@@ -912,16 +933,17 @@ pipeline.push({
 
         collegeDetails: {
           ...(existingUser.details?.collegeDetails || {}),
-          ...(parsedDetails?.collegeDetails || {})
+          ...(parsedDetails?.collegeDetails || {}),
         },
 
-    experienceDetails:
-    parsedDetails?.experienceDetails ||
-    existingUser.details?.experienceDetails || []
-   };
+        experienceDetails:
+          parsedDetails?.experienceDetails ||
+          existingUser.details?.experienceDetails ||
+          [],
+      };
       const mergedAddress = {
         ...(existingUser.address || {}),
-        ...addressUpdate
+        ...addressUpdate,
       };
       const updateFields = {
         name,
@@ -930,33 +952,33 @@ pipeline.push({
         email: email?.trim(),
         mobileNumber: mobileNumber?.trim(),
         location,
-        address:mergedAddress,
-        details:mergedDetails,
+        address: mergedAddress,
+        details: mergedDetails,
         // address: addressUpdate,
         // details: parsedDetails,
         image: profileImages,
         certificates: certificatesArr,
         logoImage: logoImagesArr,
-        updatedDate: Date.now()
+        updatedDate: Date.now(),
       };
 
       const updatedUser = await userModel.findOneAndUpdate(
         { userId },
         { $set: updateFields },
-        { new: true }
+        { new: true },
       );
 
       return res.json({
         status: "success",
         message: "User updated successfully",
-        data: updatedUser
+        data: updatedUser,
       });
     }
-   } catch (error) {
-   console.error("REGISTER ERROR:", error);
-   return res.json({
+  } catch (error) {
+    console.error("REGISTER ERROR:", error);
+    return res.json({
       status: "error",
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -982,7 +1004,6 @@ pipeline.push({
 //     let parsedAddress = address ? JSON.parse(address) : {};
 //     let parsedDetails = details ? JSON.parse(details) : {};
 
-  
 //     if (userId == "0") {
 
 //       const duplicateUser = await userModel.findOne({
@@ -1007,7 +1028,6 @@ pipeline.push({
 
 //       const newUserId = `LYD${counter.userId}`;
 
-    
 //       let images = [], certificates = [], logoImages = [];
 
 //       if (req.files) {
@@ -1048,7 +1068,6 @@ pipeline.push({
 //         data: newUser
 //       });
 //     }
-
 
 //     else {
 
@@ -1115,16 +1134,16 @@ pipeline.push({
 //   let parsedAddress, parsedDetails;
 
 //    if (address) {
-//       try { parsedAddress = JSON.parse(address); } 
+//       try { parsedAddress = JSON.parse(address); }
 //       catch { return res.json({ status: "error", message: "Address is not valid JSON" }); }
 //    }
 //     if (details) {
-//       try { parsedDetails = JSON.parse(details); } 
+//       try { parsedDetails = JSON.parse(details); }
 //       catch { return res.json({ status: "error", message: "Details is not valid JSON" }); }
 //     }
 //     // const images = req.files?.image || [];
 //     // const certificates = req.files?.certificates || [];
-//     // const logoImages = req.files?.logoImage || []; 
+//     // const logoImages = req.files?.logoImage || [];
 
 //     if (userId == "0") {
 //      // if (!name || !dob||  !userType ||!martialStatus|| !email || !mobileNumber || !parsedAddress || !parsedDetails)
@@ -1163,7 +1182,7 @@ pipeline.push({
 //    });
 // //console.log(`sdminid${adminUser.adminDetails?.adminId}`)
 //   if (!duplicateUser||adminUser&& req.body.adminId==adminUser.adminDetails?.adminId) {
-   
+
 //         // if (password) updateFields.password = await bcryptjs.hash(adminUser.password, 10);
 //  let hashedPassword ;
 //         if(!adminUser){
@@ -1188,7 +1207,7 @@ pipeline.push({
 //     const logoImages = [];
 
 //     for (const file of req.files) {
-//     const uploadedUrl = await uploadToS3(file); 
+//     const uploadedUrl = await uploadToS3(file);
 //     console.log(`ghhg${uploadedUrl}`)
 //     switch (file.fieldname) {
 //     case "image":
@@ -1226,7 +1245,7 @@ pipeline.push({
 //         // address: parsedAddress, details: parsedDetails,
 //         // image: images,
 //         // certificates: certificates,
-//         // logoImage: logoImages, 
+//         // logoImage: logoImages,
 //         // });
 //   const newUser = new userModel({
 //   userId: newUserId,
@@ -1254,7 +1273,7 @@ pipeline.push({
 //           await newUser.save();
 //   //     //sendWhatsAppTemplate("918489792275", "client_welcome_2",[name])
 //   //     await sendWhatsAppTemplate(`${mobileNumber}`, "client_welcome_2",[name])
-   
+
 //       const response = await axios.post( `${process.env.base_url}lyd/user/create_email`,
 //       {
 //         userId: newUserId,
@@ -1271,12 +1290,12 @@ pipeline.push({
 //     );
 //    console.log("Mail response:", response.data);
 //    console.error( "Mail error:", error.response?.data || error.message );
-//        await sendRegistrationOtp(newUserId); 
+//        await sendRegistrationOtp(newUserId);
 //    if (userType !== 'admin' && userType !== 'superAdmin' && userType !== 'Job Seekers') {
 //      await assignFreePlanToUser(newUserId,userType)
 //    }
 //     res.json({ status: "success", message: "User registered successfully", data: newUser });
-//    } 
+//    }
 //   } else {
 //     const existingUser = await userModel.findOne({ userId });
 //   if (!existingUser) return res.json({ status: "error", message: "User not found" });
@@ -1296,7 +1315,7 @@ pipeline.push({
 
 //       // if (images.length) profileImages.push(...images.map(f => f.path));
 //       // if (certificates.length) certificatesArr.push(...certificates.map(f => f.path));
-     
+
 //   if (req.files && req.files.length > 0) {
 //   for (const file of req.files) {
 //     const uploadedUrl = await uploadToS3(file);
@@ -1355,7 +1374,7 @@ pipeline.push({
 // if (latitude && longitude) {
 //   addressUpdate.geoLocation = {
 //     type: 'Point',
-//     coordinates: [Number(longitude), Number(latitude)], 
+//     coordinates: [Number(longitude), Number(latitude)],
 //   };
 // }
 
@@ -1370,11 +1389,9 @@ pipeline.push({
 //   }
 // };
 //watsapp
-const PHONE_NUMBER_ID = `${process.env.PHONE_NUMBER_ID}`;;
+const PHONE_NUMBER_ID = `${process.env.PHONE_NUMBER_ID}`;
 const TOKEN = `${process.env.WHATSAPP_ACCESS_TOKEN}`;
 const API_URL = `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`;
-
-
 
 const GRAPH_URL = `https://graph.facebook.com/${process.env.GRAPH_API_VERSION}/${process.env.PHONE_NUMBER_ID}/messages`;
 
@@ -1425,7 +1442,11 @@ const GRAPH_URL = `https://graph.facebook.com/${process.env.GRAPH_API_VERSION}/$
 // }
 
 // Function to send WhatsApp message
-async function sendWhatsAppTemplate(toNumber, templateName, templateParams = []) {
+async function sendWhatsAppTemplate(
+  toNumber,
+  templateName,
+  templateParams = [],
+) {
   try {
     // const response = await axios.post(
     //   API_URL,
@@ -1449,31 +1470,37 @@ async function sendWhatsAppTemplate(toNumber, templateName, templateParams = [])
         to: toNumber,
         type: "template",
         template: {
-          name: "client_welcome_2",         
+          name: "client_welcome_2",
           language: { code: "en" },
-          components: templateParams.length > 0 ? [
-            {
-              type: "body",
-              parameters: templateParams.map(param => ({
-                type: "text",
-                text: param
-              }))
-            }
-          ] : []
-        }
+          components:
+            templateParams.length > 0
+              ? [
+                  {
+                    type: "body",
+                    parameters: templateParams.map((param) => ({
+                      type: "text",
+                      text: param,
+                    })),
+                  },
+                ]
+              : [],
+        },
       },
       {
         headers: {
-          "Authorization": `Bearer ${TOKEN}`,
-          "Content-Type": "application/json"
-        }
-      }
+          Authorization: `Bearer ${TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      },
     );
 
     console.log("Message sent:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Error sending message:", error.response?.data || error.message);
+    console.error(
+      "Error sending message:",
+      error.response?.data || error.message,
+    );
     throw error;
   }
 }
@@ -1495,7 +1522,7 @@ const assignFreePlanToUser = async (newUserId, userType) => {
       isActive: true,
       planName: "Free",
     });
-   console.log(`${userType}`)
+    console.log(`${userType}`);
     if (!plan) {
       throw new Error("Free plan not found");
     }
@@ -1503,15 +1530,15 @@ const assignFreePlanToUser = async (newUserId, userType) => {
     const planId = plan.planId;
     const planName = plan.planName;
     const price = plan.price;
-    const duration = Number(plan.duration); 
+    const duration = Number(plan.duration);
     const { startDate, endDate } = calculatePlanDates(duration);
-    const user = await userModel.findOne({ userId:newUserId,isActive:true});
+    const user = await userModel.findOne({ userId: newUserId, isActive: true });
 
     // const token = jwt.sign(
     //   { userId: user.userId, userName: user.name, userType: user.userType },
     //   secret,
     //   { expiresIn: '1d' } );
-  
+
     // 3. Create user plan
     const response = await axios.post(
       `${process.env.base_url}/lyd/plans/create_userPlan`,
@@ -1526,9 +1553,9 @@ const assignFreePlanToUser = async (newUserId, userType) => {
       {
         headers: {
           "Content-Type": "application/json",
-         //   Authorization: `Bearer ${token}`,
+          //   Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     return response.data;
@@ -1545,17 +1572,20 @@ const assignFreePlanToUser = async (newUserId, userType) => {
 
 //      if (req.file) {
 //       appLogo = await uploadToS3(req.file);
-//     } 
+//     }
 //    return res.send({ status: "success", message: "Email verified successfully" });
 //   } catch (err) {
 //     return res.status(500).send({ status: "error", message: err.message });
 //   }
 // }
-  exports.verifyRegistrationOtp = async (req, res) => {
+exports.verifyRegistrationOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp)
-      return res.send({ status: "error", message: "Email and OTP are required" });
+      return res.send({
+        status: "error",
+        message: "Email and OTP are required",
+      });
 
     const user = await userModel.findOne({ email, isActive: true });
     if (!user) return res.send({ status: "error", message: "User not found" });
@@ -1577,24 +1607,31 @@ const assignFreePlanToUser = async (newUserId, userType) => {
           "details.emailOtp": null,
           "details.emailOtpExpiry": null,
         },
-      }
+      },
     );
 
-    return res.send({ status: "success", message: "Email verified successfully" });
+    return res.send({
+      status: "success",
+      message: "Email verified successfully",
+    });
   } catch (err) {
     return res.status(500).send({ status: "error", message: err.message });
   }
 };
-  exports.resendRegistrationOtp = async (req, res) => {
+exports.resendRegistrationOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.json({ status: "error", message: "Email is required" });
+    if (!email)
+      return res.json({ status: "error", message: "Email is required" });
 
     const user = await userModel.findOne({ email, isActive: true });
     if (!user) return res.json({ status: "error", message: "User not found" });
 
     if (user.isEmailVerified) {
-      return res.json({ status: "error", message: "Email is already verified" });
+      return res.json({
+        status: "error",
+        message: "Email is already verified",
+      });
     }
 
     // Generate new OTP
@@ -1604,7 +1641,9 @@ const assignFreePlanToUser = async (newUserId, userType) => {
     // Save to user
     await userModel.findOneAndUpdate(
       { userId: user.userId },
-      { $set: { "details.emailOtp": otp, "details.emailOtpExpiry": otpExpiry } }
+      {
+        $set: { "details.emailOtp": otp, "details.emailOtpExpiry": otpExpiry },
+      },
     );
 
     // Send email
@@ -1620,11 +1659,12 @@ const assignFreePlanToUser = async (newUserId, userType) => {
     const source = fs.readFileSync(templatePath, "utf8");
     const template = handlebars.compile(source);
 
-    const content = await getNotificationContent('otp_resend', {
-      emailSubject: 'LYD OTP Verification Mail',
-      title: 'Password Reset',
-      message: 'Use the OTP below to verify your email. This OTP is valid for 10 minutes.',
-      whatsappVariables: ['name', 'otp'],
+    const content = await getNotificationContent("otp_resend", {
+      emailSubject: "LYD OTP Verification Mail",
+      title: "Password Reset",
+      message:
+        "Use the OTP below to verify your email. This OTP is valid for 10 minutes.",
+      whatsappVariables: ["name", "otp"],
     });
 
     const htmlContent = template({
@@ -1642,229 +1682,279 @@ const assignFreePlanToUser = async (newUserId, userType) => {
       html: htmlContent,
     });
 
-    await dispatchWhatsapp(content, user.mobileNumber, { name: user.name ?? "", otp });
+    await dispatchWhatsapp(content, user.mobileNumber, {
+      name: user.name ?? "",
+      otp,
+    });
 
     return res.json({ status: "success", message: "OTP resent to email" });
   } catch (err) {
     return res.status(500).json({ status: "error", message: err.message });
   }
 };
-   exports.loginUser = async (req, res) => {
-    try {
+exports.loginUser = async (req, res) => {
+  try {
     const { email, password } = req.body;
-   const user = await userModel.findOne({email: new RegExp(`^${email.trim()}$`, "i"),isActive:true,});
-   // let user = await userModel.findOne({ email: email, isActive: true, "adminDetails.isAdmin": true });
+    const user = await userModel.findOne({
+      email: new RegExp(`^${email.trim()}$`, "i"),
+      isActive: true,
+    });
+    // let user = await userModel.findOne({ email: email, isActive: true, "adminDetails.isAdmin": true });
     let userDetails;
     //if(!user){
-         //userDetails = await userModel.findOne({ email: email, isActive: true,});
-    userDetails = await userModel.findOne( {   email: new RegExp(`^${email.trim()}$`, "i"),isActive: true }, { sort: { createdDate: 1 } });
+    //userDetails = await userModel.findOne({ email: email, isActive: true,});
+    userDetails = await userModel.findOne(
+      { email: new RegExp(`^${email.trim()}$`, "i"), isActive: true },
+      { sort: { createdDate: 1 } },
+    );
 
-  //}
-    if (!userDetails) return res.json({ status: "error", message: 'User does not exist' });
-  // if (!user.isEmailVerified) {
-  //     return res.json({ status: "error", message: "Email not verified. Please verify your email before login." });
-  //   }
+    //}
+    if (!userDetails)
+      return res.json({ status: "error", message: "User does not exist" });
+    if (!user.isEmailVerified) {
+      return res.json({
+        status: "error",
+        message: "Email not verified. Please verify your email before login.",
+      });
+    }
     const isPasswordValid = await bcryptjs.compare(password, user.password);
-    if (!isPasswordValid) return res.json({ status: "error", message: 'Invalid password' });
+    if (!isPasswordValid)
+      return res.json({ status: "error", message: "Invalid password" });
     const token = jwt.sign(
       { userId: user.userId, userName: user.name, userType: user.userType },
       secret,
-      { expiresIn: "365d"  } );
-     
-     res.send({ status: 'success', authToken: `${token}`, data: user});
-   } catch (err) {
-    res.send({ status: 'error', message: err.message });
-   }
-  };
-  exports.switchUser = async (req, res) => {
-    try {
+      { expiresIn: "365d" },
+    );
 
+    res.send({ status: "success", authToken: `${token}`, data: user });
+  } catch (err) {
+    res.send({ status: "error", message: err.message });
+  }
+};
+exports.switchUser = async (req, res) => {
+  try {
     const { userId } = req.body;
-       let user  = await userModel.findOne( {  userId :userId, isActive: true });
-    if (!user) return res.json({ status: "error", message: 'User does not exist' });
+    let user = await userModel.findOne({ userId: userId, isActive: true });
+    if (!user)
+      return res.json({ status: "error", message: "User does not exist" });
     const token = jwt.sign(
       { userId: user.userId, userName: user.name, userType: user.userType },
       secret,
-      { expiresIn: '1y' } );
-     
-     res.send({ status: 'success', authToken: `${token}`, data: user});
-   } catch (err) {
-    res.send({ status: 'error', message: err.message });
-   }
-  };
+      { expiresIn: "1y" },
+    );
 
-  exports.getAllBranches = async (req, res) => {
-    try {
+    res.send({ status: "success", authToken: `${token}`, data: user });
+  } catch (err) {
+    res.send({ status: "error", message: err.message });
+  }
+};
+
+exports.getAllBranches = async (req, res) => {
+  try {
     const { email } = req.body;
-    const user = await userModel.findOne({email:email},{isActive:true});
+    const user = await userModel.findOne({ email: email }, { isActive: true });
 
-    if (!user) return res.json({ status: "error", message: 'User does not exist' });
-     const getBranches = await userModel.find({email:email});
-     res.json({ status: 'success', data:getBranches});
-   } catch (err) {
-    res.send({ status: 'error', message: err.message });
-   }
-  };
+    if (!user)
+      return res.json({ status: "error", message: "User does not exist" });
+    const getBranches = await userModel.find({ email: email });
+    res.json({ status: "success", data: getBranches });
+  } catch (err) {
+    res.send({ status: "error", message: err.message });
+  }
+};
 
-   exports.changeAppLogo = async (req, res) => {
-   try {
+exports.changeAppLogo = async (req, res) => {
+  try {
     if (!req.file) {
       return res.status({
         status: "error",
-        message: "File not found"
+        message: "File not found",
       });
     }
- const appImage= await appLogoModel.find({}
-     //  { userId:req.user.userId } ,
+    const appImage = await appLogoModel.find(
+      {},
+      //  { userId:req.user.userId } ,
     );
-        const result = await deleteFromS3(appImage[0]?.appLogo);
+    const result = await deleteFromS3(appImage[0]?.appLogo);
 
     const imageUrl = await uploadToS3(req.file);
 
-    const changeLogo=  await appLogoModel.updateOne(
-      {userId:req.user.userId },
-      { $set: { appLogo: imageUrl,} },
-      { upsert: true,new:true }
+    const changeLogo = await appLogoModel.updateOne(
+      { userId: req.user.userId },
+      { $set: { appLogo: imageUrl } },
+      { upsert: true, new: true },
     );
-     if(changeLogo){
-     return res.json({
-      status: "success",
-      message: "App logo uploaded successfully",
-      data: imageUrl
-    });
+    if (changeLogo) {
+      return res.json({
+        status: "success",
+        message: "App logo uploaded successfully",
+        data: imageUrl,
+      });
+    } else {
+      return res.json({
+        status: "error",
+        message: "App logo not uploaded",
+      });
     }
-    else{
-    return res.json({
-      status: "error",
-      message: "App logo not uploaded",
-     
-    }); 
-    }
-   } catch (err) {
-    return res.json({
-      status: "error",
-      message: err.message
-    });
-  }
-  };
-
- exports.getAppLogo = async (req, res) => {
-  try {
-
-  const appImage= await appLogoModel.find({}
-     //  { userId:req.user.userId } ,
-    );
-const urls = appImage.map(img => img.appLogo); 
-console.log(`ie${urls}`)
-    return res.json({
-      status: "success",
-      //message: "App logo uploaded successfully",
-      data: urls
-    });
-
   } catch (err) {
-    return res.send({
+    return res.json({
       status: "error",
-      message: err.message
+      message: err.message,
     });
   }
 };
-  
-  exports.changePassword = async (req, res) => {
-    try {
-    const { userId, newPassword,oldPassword } = req.body;
-    const user = await userModel.findOne({userId:userId});
 
-    if (!user) return res.json({ status: "error", message: 'User does not exist' });
+exports.getAppLogo = async (req, res) => {
+  try {
+    const appImage = await appLogoModel.find(
+      {},
+      //  { userId:req.user.userId } ,
+    );
+    const urls = appImage.map((img) => img.appLogo);
+    console.log(`ie${urls}`);
+    return res.json({
+      status: "success",
+      //message: "App logo uploaded successfully",
+      data: urls,
+    });
+  } catch (err) {
+    return res.send({
+      status: "error",
+      message: err.message,
+    });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { userId, newPassword, oldPassword } = req.body;
+    const user = await userModel.findOne({ userId: userId });
+
+    if (!user)
+      return res.json({ status: "error", message: "User does not exist" });
     const isPasswordValid = await bcryptjs.compare(oldPassword, user.password);
-    if (!isPasswordValid) return res.json({ status: "error", message: 'old password is wrong' });
-     const hashedPassword = await bcryptjs.hash(newPassword, 10);
-     const addPassword = await userModel.findOneAndUpdate({userId:userId},{$set:{password:hashedPassword}});
-     const email=addPassword.email;
-      const loginModel= userLoginModel.find({email:email},{$set:{password:hashedPassword}});
-      const userModel1= userModel.find({email:email},{$set:{password:hashedPassword}});
-     res.json({ status: 'success', message:"password updated successfully"});
-   } catch (err) {
-    res.status({ status: 'error', message: err.message });
-   }
-  };
-   exports.forgotChangePassword = async (req, res) => {
-    try {
-    const { mail, newPassword, } = req.body;
-    const user = await userModel.findOne({email:mail,isActive:true});
-   if (!user) return res.json({ status: "error", message: 'User does not exist' });
-   //  const isPasswordValid = await bcryptjs.compare(oldPassword, user.password);
-   // if (!isPasswordValid) return res.json({ status: "error", message: 'old password is wrong' });
-     const hashedPassword = await bcryptjs.hash(newPassword, 10);
-     const addPassword = await userModel.findOneAndUpdate({email:mail},{$set:{password:hashedPassword}});
-       const email=addPassword.email;
-      //const loginModel= userLoginModel.find({email:email},{$set:{password:hashedPassword}});
-            //const users= userModel.find({email:email},{$set:{password:hashedPassword}});
-     res.send({ status: 'success', message:"password Changed successfully"});
-   } catch (err) {
-    res.send({ status: 'error', message: err.message });
-   }
-  };
-  
-  exports.forgotPassword = async (req, res) => {
+    if (!isPasswordValid)
+      return res.json({ status: "error", message: "old password is wrong" });
+    const hashedPassword = await bcryptjs.hash(newPassword, 10);
+    const addPassword = await userModel.findOneAndUpdate(
+      { userId: userId },
+      { $set: { password: hashedPassword } },
+    );
+    const email = addPassword.email;
+    const loginModel = userLoginModel.find(
+      { email: email },
+      { $set: { password: hashedPassword } },
+    );
+    const userModel1 = userModel.find(
+      { email: email },
+      { $set: { password: hashedPassword } },
+    );
+    res.json({ status: "success", message: "password updated successfully" });
+  } catch (err) {
+    res.status({ status: "error", message: err.message });
+  }
+};
+exports.forgotChangePassword = async (req, res) => {
+  try {
+    const { mail, newPassword } = req.body;
+    const user = await userModel.findOne({ email: mail, isActive: true });
+    if (!user)
+      return res.json({ status: "error", message: "User does not exist" });
+    //  const isPasswordValid = await bcryptjs.compare(oldPassword, user.password);
+    // if (!isPasswordValid) return res.json({ status: "error", message: 'old password is wrong' });
+    const hashedPassword = await bcryptjs.hash(newPassword, 10);
+    const addPassword = await userModel.findOneAndUpdate(
+      { email: mail },
+      { $set: { password: hashedPassword } },
+    );
+    const email = addPassword.email;
+    //const loginModel= userLoginModel.find({email:email},{$set:{password:hashedPassword}});
+    //const users= userModel.find({email:email},{$set:{password:hashedPassword}});
+    res.send({ status: "success", message: "password Changed successfully" });
+  } catch (err) {
+    res.send({ status: "error", message: err.message });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
   try {
     const { mail } = req.body;
-    const user = await userModel.findOne({email:mail,isActive:true});
-    if (!user) return res.json({ status: "error", message: 'No record was found for the provided user information. Please register to create a new account.' });
-    else{
-    generateOtp=Math.floor(1000+Math.random()*9000)
-    console.log(`otp${generateOtp}`)
-     // user.details.resetOtp = generateOtp;
-     const otpExpiry = Date.now() + 10 * 60 * 1000;
-    await userModel.findOneAndUpdate({userId:user.userId},{$set:{"details.resetOtp":generateOtp,"details.otpExpiry":otpExpiry}});
-    // const transporter = nodemailer.createTransport({
-    // service: "gmail",
-    // auth: {
-    //     user: `${process.env.nodemail_username}`,
-    //     pass: `${process.env.nodemail_password}`,
-    //   }
-    // });
-      const renderTemplate = (templateName, data) => {
-      const templatePath = path.join(
-        __dirname,
-        "template",         
-        `${templateName}.hbs`
+    const user = await userModel.findOne({ email: mail, isActive: true });
+    if (!user)
+      return res.json({
+        status: "error",
+        message:
+          "No record was found for the provided user information. Please register to create a new account.",
+      });
+    else {
+      generateOtp = Math.floor(1000 + Math.random() * 9000);
+      console.log(`otp${generateOtp}`);
+      // user.details.resetOtp = generateOtp;
+      const otpExpiry = Date.now() + 10 * 60 * 1000;
+      await userModel.findOneAndUpdate(
+        { userId: user.userId },
+        {
+          $set: {
+            "details.resetOtp": generateOtp,
+            "details.otpExpiry": otpExpiry,
+          },
+        },
       );
+      // const transporter = nodemailer.createTransport({
+      // service: "gmail",
+      // auth: {
+      //     user: `${process.env.nodemail_username}`,
+      //     pass: `${process.env.nodemail_password}`,
+      //   }
+      // });
+      const renderTemplate = (templateName, data) => {
+        const templatePath = path.join(
+          __dirname,
+          "template",
+          `${templateName}.hbs`,
+        );
 
-      if (!fs.existsSync(templatePath)) {
-        throw new Error(`Template not found: ${templatePath}`);
-      }
-      const source = fs.readFileSync(templatePath, "utf8");
-      return handlebars.compile(source)(data);
+        if (!fs.existsSync(templatePath)) {
+          throw new Error(`Template not found: ${templatePath}`);
+        }
+        const source = fs.readFileSync(templatePath, "utf8");
+        return handlebars.compile(source)(data);
       };
-      const content = await getNotificationContent('otp_forgot_password', {
-      emailSubject: 'LYD OTP Verification Mail',
-      title: 'Password Reset',
-      message: 'Use the OTP below to reset your password. This OTP is valid for 10 minutes.',
-      whatsappVariables: ['name', 'otp'],
-    });
+      const content = await getNotificationContent("otp_forgot_password", {
+        emailSubject: "LYD OTP Verification Mail",
+        title: "Password Reset",
+        message:
+          "Use the OTP below to reset your password. This OTP is valid for 10 minutes.",
+        whatsappVariables: ["name", "otp"],
+      });
       const htmlContent = renderTemplate("otp_template", {
-      otp:generateOtp??"",
-      name:user.name??"",
-      year: new Date().getFullYear(),
-      title: content.title,
-      message: content.message
+        otp: generateOtp ?? "",
+        name: user.name ?? "",
+        year: new Date().getFullYear(),
+        title: content.title,
+        message: content.message,
+      });
+      await sendMail({
+        from: `"LYD" <${process.env.nodemail_username}>`,
+        to: mail,
+        subject: content.emailSubject,
+        html: htmlContent,
+      });
+      await dispatchWhatsapp(content, user.mobileNumber, {
+        name: user.name ?? "",
+        otp: generateOtp,
+      });
+    }
+    res.json({
+      status: "success",
+      message: "check your mail and verify password",
     });
-     await sendMail({
-      from: `"LYD" <${process.env.nodemail_username}>`,
-      to: mail,
-      subject: content.emailSubject,
-      html: htmlContent
-     });
-     await dispatchWhatsapp(content, user.mobileNumber, { name: user.name ?? "", otp: generateOtp });
-     }
-    res.json({ status: 'success', message:"check your mail and verify password"});
-   } catch (err) {
-    res.send({ status: 'error', message: err.message });
-   }
-  };
+  } catch (err) {
+    res.send({ status: "error", message: err.message });
+  }
+};
 
-  exports.verifyOtp = async (req, res) => {
+exports.verifyOtp = async (req, res) => {
   try {
     const { mail, otp } = req.body;
 
@@ -1875,7 +1965,7 @@ console.log(`ie${urls}`)
       });
     }
 
-    const user = await userModel.findOne({ email:mail });
+    const user = await userModel.findOne({ email: mail });
 
     if (!user) {
       return res.send({
@@ -1903,13 +1993,20 @@ console.log(`ie${urls}`)
     // OTP verified successfully
     user.details.resetOtp = otp;
     console.log(user.details.otpExpiry);
-      await userModel.findOneAndUpdate({userId:user.userId},{$set:{"details.resetOtp":otp,"details.otpExpiry":user.details.otpExpiry}});
+    await userModel.findOneAndUpdate(
+      { userId: user.userId },
+      {
+        $set: {
+          "details.resetOtp": otp,
+          "details.otpExpiry": user.details.otpExpiry,
+        },
+      },
+    );
 
     res.json({
       status: "success",
       message: "OTP verified successfully",
     });
-
   } catch (error) {
     res.status({
       status: "error",
@@ -1918,71 +2015,86 @@ console.log(`ie${urls}`)
   }
 };
 
-exports.getUserbyId=async(req,res)=>{
-const{userId}=req.body;
-try{
-
-//const user= await userModel.findOne({userId:userId,isActive:true});
-const user= await userModel.findOne({userId:userId});
-if(!user){
-return res.json({status:"error",data:"user not found"})
-}
-else{
-return res.json({status:"Success",data:user})
-}
-}
-catch(error){
-return res.json({status:"error",message:error.message})
-}
-}
-
-
- exports.uploadProfileImage=async(req,res)=>{
- const {userId}=req.body;
-  try{
-    if(!req.file){
-        res.status({status:"error",message:"Image is not Uploaded"})
+exports.getUserbyId = async (req, res) => {
+  const { userId } = req.body;
+  try {
+    //const user= await userModel.findOne({userId:userId,isActive:true});
+    const user = await userModel.findOne({ userId: userId });
+    if (!user) {
+      return res.json({ status: "error", data: "user not found" });
+    } else {
+      return res.json({ status: "Success", data: user });
     }
-     if(!userId){
-        res.status({status:"error",message:"User Id is not found"})
+  } catch (error) {
+    return res.json({ status: "error", message: error.message });
+  }
+};
+
+exports.uploadProfileImage = async (req, res) => {
+  const { userId } = req.body;
+  try {
+    if (!req.file) {
+      res.status({ status: "error", message: "Image is not Uploaded" });
     }
-    const oldPath=`${req.file.path}`;
-    const newPath=`${req.body.userId}${path.extname(req.file.originalname)}`;
-    const newPathName=path.join('ProfilePictures',newPath)
-    fs.renameSync(oldPath,newPathName)
+    if (!userId) {
+      res.status({ status: "error", message: "User Id is not found" });
+    }
+    const oldPath = `${req.file.path}`;
+    const newPath = `${req.body.userId}${path.extname(req.file.originalname)}`;
+    const newPathName = path.join("ProfilePictures", newPath);
+    fs.renameSync(oldPath, newPathName);
     res.json({
-    status:"success",
-    message:"File uploaded Successfully",
-    imagePath:newPathName
-  });
+      status: "success",
+      message: "File uploaded Successfully",
+      imagePath: newPathName,
+    });
+  } catch (error) {
+    res.send({ status: "error", message: error.message });
   }
-  catch(error){
-    res.send({status:"error","message":error.message})
-  }
-}
+};
 
-  exports.deactivateUser=async(req,res)=>{
-   const{userId,isActive}=req.query;
-    try{
-       const deactivateService= await userModel.find({userId:userId},)
-       if(deactivateService.length<0){
-        res.send({status:"error",message:"user not found"})
-       }
-      const deactivateService1= await userModel.findOneAndUpdate({userId:userId},{isActive:isActive})
-       isActive==true? res.send({status:"success",message:"activated successfully",isActive:deactivateService1.isActive}):
-       res.send({status:"success",message:"deactivated successfully",isActive:deactivateService1.isActive})
+exports.deactivateUser = async (req, res) => {
+  const { userId, isActive } = req.query;
+  try {
+    const deactivateService = await userModel.find({ userId: userId });
+    if (deactivateService.length < 0) {
+      res.send({ status: "error", message: "user not found" });
     }
-    catch(error){
-     res.send({status:"error",message:"not deactivated "})
-    }
+    const deactivateService1 = await userModel.findOneAndUpdate(
+      { userId: userId },
+      { isActive: isActive },
+    );
+    isActive == true
+      ? res.send({
+          status: "success",
+          message: "activated successfully",
+          isActive: deactivateService1.isActive,
+        })
+      : res.send({
+          status: "success",
+          message: "deactivated successfully",
+          isActive: deactivateService1.isActive,
+        });
+  } catch (error) {
+    res.send({ status: "error", message: "not deactivated " });
   }
+};
 
-  exports.welcome_email = async (req, res) => {
+exports.welcome_email = async (req, res) => {
   try {
     const { userId, subject, message } = req.body;
     const getUserAddress = await userModel.findOne(
       { userId },
-      { "address.state": 1, "address.district": 1, "address.city": 1, email: 1,name:1,password:1,mobileNumber:1, _id: 0 }
+      {
+        "address.state": 1,
+        "address.district": 1,
+        "address.city": 1,
+        email: 1,
+        name: 1,
+        password: 1,
+        mobileNumber: 1,
+        _id: 0,
+      },
     );
     if (!getUserAddress) {
       return res.send({ status: "error", message: "user not found" });
@@ -1994,28 +2106,28 @@ return res.json({status:"error",message:error.message})
         userType: "admin",
         "address.state": state,
         "address.district": district,
-        "address.city": city
+        "address.city": city,
       },
-      { email: 1, _id: 0 }
+      { email: 1, _id: 0 },
     );
 
     const getSuperAdmins = await userModel.find(
       { userType: "superAdmin" },
-      { email: 1, _id: 0 }
+      { email: 1, _id: 0 },
     );
 
     const allMailIds = [
       ...new Set([
-        ...getAllAdmins.map(u => u.email),
-        ...getSuperAdmins.map(u => u.email)
-      ])
+        ...getAllAdmins.map((u) => u.email),
+        ...getSuperAdmins.map((u) => u.email),
+      ]),
     ];
     const adminEmailList = allMailIds.filter(Boolean).join(",");
     const renderTemplate = (templateName, data) => {
       const templatePath = path.join(
         __dirname,
-        "template",         
-        `${templateName}.hbs`
+        "template",
+        `${templateName}.hbs`,
       );
 
       if (!fs.existsSync(templatePath)) {
@@ -2023,42 +2135,47 @@ return res.json({status:"error",message:error.message})
       }
       const source = fs.readFileSync(templatePath, "utf8");
       return handlebars.compile(source)(data);
-      };
-      console.log(getUserAddress.name)
-      const welcomeContent = await getNotificationContent('welcome_user', {
+    };
+    console.log(getUserAddress.name);
+    const welcomeContent = await getNotificationContent("welcome_user", {
       emailSubject: subject,
-      title: 'Welcome 🎉',
-      message: "We're excited to have you on board! Below are your login credentials:",
-      whatsappVariables: ['name'],
+      title: "Welcome 🎉",
+      message:
+        "We're excited to have you on board! Below are your login credentials:",
+      whatsappVariables: ["name"],
     });
-      const adminContent = await getNotificationContent('admin_notification_new_user', {
-      emailSubject: subject,
-      title: '🎉 New User Registered',
-      message: 'A new user has successfully registered in the system. Here are the details:',
-      whatsappVariables: ['name'],
-    });
-      const htmlContent = renderTemplate("welcome_user", {
-      username:getUserAddress.name,
-      password:getUserAddress.password,
+    const adminContent = await getNotificationContent(
+      "admin_notification_new_user",
+      {
+        emailSubject: subject,
+        title: "🎉 New User Registered",
+        message:
+          "A new user has successfully registered in the system. Here are the details:",
+        whatsappVariables: ["name"],
+      },
+    );
+    const htmlContent = renderTemplate("welcome_user", {
+      username: getUserAddress.name,
+      password: getUserAddress.password,
       loginUrl: `${process.env.base_url}/login`,
       year: new Date().getFullYear(),
       title: welcomeContent.title,
-      message: welcomeContent.message
+      message: welcomeContent.message,
     });
-      const htmlContent1 = renderTemplate("admin_notification", {
-      userId:userId,
-      name:getUserAddress.name,
-      mobile:getUserAddress.mobileNumber,
-      email:getUserAddress.email,
+    const htmlContent1 = renderTemplate("admin_notification", {
+      userId: userId,
+      name: getUserAddress.name,
+      mobile: getUserAddress.mobileNumber,
+      email: getUserAddress.email,
       registeredOn: new Date().toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric"
-  }),
-  year: new Date().getFullYear(),
-  title: adminContent.title,
-  message: adminContent.message
-});
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }),
+      year: new Date().getFullYear(),
+      title: adminContent.title,
+      message: adminContent.message,
+    });
     //  const transporter = nodemailer.createTransport({
     // service: "gmail",
     // auth: {
@@ -2071,33 +2188,43 @@ return res.json({status:"error",message:error.message})
       from: `"LYD" <${process.env.nodemail_username}>`,
       to: adminEmailList,
       subject: welcomeContent.emailSubject,
-      html: htmlContent
+      html: htmlContent,
     });
-     await sendMail({
+    await sendMail({
       from: `"LYD" <${process.env.nodemail_username}>`,
       to: getUserAddress.email,
       subject: adminContent.emailSubject,
-      html: htmlContent1
+      html: htmlContent1,
     });
-    await dispatchWhatsapp(welcomeContent, getUserAddress.mobileNumber, { name: getUserAddress.name });
+    await dispatchWhatsapp(welcomeContent, getUserAddress.mobileNumber, {
+      name: getUserAddress.name,
+    });
     res.send({ status: "success", message: "Mail sent successfully" });
-
   } catch (error) {
     console.error(error);
     res.send({
       status: "error",
-      message: `Mail not sent: ${error.message}`
+      message: `Mail not sent: ${error.message}`,
     });
   }
 };
 
-  exports.create_email = async (req, res) => {
+exports.create_email = async (req, res) => {
   try {
-    const { userId, subject, message,title } = req.body;
+    const { userId, subject, message, title } = req.body;
 
     const getUserAddress = await userModel.findOne(
       { userId },
-      { "address.state": 1, "address.district": 1, "address.city": 1, email: 1,name:1,password:1,mobileNumber:1, _id: 0 }
+      {
+        "address.state": 1,
+        "address.district": 1,
+        "address.city": 1,
+        email: 1,
+        name: 1,
+        password: 1,
+        mobileNumber: 1,
+        _id: 0,
+      },
     );
 
     if (!getUserAddress) {
@@ -2109,31 +2236,32 @@ return res.json({status:"error",message:error.message})
         userType: "admin",
         "address.state": state,
         "address.district": district,
-        "address.city": city
+        "address.city": city,
       },
-      { email: 1, _id: 0 }
+      { email: 1, _id: 0 },
     );
 
     const getSuperAdmins = await userModel.find(
       { userType: "superAdmin" },
-      { email: 1, _id: 0 }
+      { email: 1, _id: 0 },
     );
 
     const allMailIds = [
       ...new Set([
-        ...getAllAdmins.map(u => u.email),
-        ...getSuperAdmins.map(u => u.email)
-      ])
+        ...getAllAdmins.map((u) => u.email),
+        ...getSuperAdmins.map((u) => u.email),
+      ]),
     ];
-  const appImage= await appLogoModel.find({}
-     //  { userId:req.user.userId } ,
-     );
-  const appLogourls = appImage.map(img => img.appLogo); 
+    const appImage = await appLogoModel.find(
+      {},
+      //  { userId:req.user.userId } ,
+    );
+    const appLogourls = appImage.map((img) => img.appLogo);
     const renderTemplate = (templateName, data) => {
       const templatePath = path.join(
         __dirname,
-        "template",         
-        `${templateName}.hbs`
+        "template",
+        `${templateName}.hbs`,
       );
 
       if (!fs.existsSync(templatePath)) {
@@ -2141,45 +2269,50 @@ return res.json({status:"error",message:error.message})
       }
       const source = fs.readFileSync(templatePath, "utf8");
       return handlebars.compile(source)(data);
-      };
-      console.log(getUserAddress.name)
-      const welcomeContent = await getNotificationContent('welcome_user', {
+    };
+    console.log(getUserAddress.name);
+    const welcomeContent = await getNotificationContent("welcome_user", {
       emailSubject: subject,
-      title: 'Welcome 🎉',
-      message: "We're excited to have you on board! Below are your login credentials:",
-      whatsappVariables: ['name'],
+      title: "Welcome 🎉",
+      message:
+        "We're excited to have you on board! Below are your login credentials:",
+      whatsappVariables: ["name"],
     });
-      const adminContent = await getNotificationContent('admin_notification_new_user', {
-      emailSubject: subject,
-      title: '🎉 New User Registered',
-      message: 'A new user has successfully registered in the system. Here are the details:',
-      whatsappVariables: ['name'],
-    });
-      const htmlContent = renderTemplate("welcome_user", {
-      username:getUserAddress.name,
-      password:getUserAddress.password,
-      logoUrl:appLogourls[0],
+    const adminContent = await getNotificationContent(
+      "admin_notification_new_user",
+      {
+        emailSubject: subject,
+        title: "🎉 New User Registered",
+        message:
+          "A new user has successfully registered in the system. Here are the details:",
+        whatsappVariables: ["name"],
+      },
+    );
+    const htmlContent = renderTemplate("welcome_user", {
+      username: getUserAddress.name,
+      password: getUserAddress.password,
+      logoUrl: appLogourls[0],
       loginUrl: `${process.env.base_url}/lyd/user/login_user`,
       year: new Date().getFullYear(),
       title: welcomeContent.title,
-      message: welcomeContent.message
+      message: welcomeContent.message,
     });
-      const htmlContent1 = renderTemplate("admin_notification", {
-      userId:userId,
-      name:getUserAddress.name,
-      mobile:getUserAddress.mobileNumber,
-      email:getUserAddress.email,
-      logoUrl:appLogourls[0],
+    const htmlContent1 = renderTemplate("admin_notification", {
+      userId: userId,
+      name: getUserAddress.name,
+      mobile: getUserAddress.mobileNumber,
+      email: getUserAddress.email,
+      logoUrl: appLogourls[0],
       loginUrl: `${process.env.base_url}/lyd/user/login_user`,
-     registeredOn: new Date().toLocaleDateString("en-IN", {
-     day: "2-digit",
-     month: "long",
-     year: "numeric"
-     }),
-     year: new Date().getFullYear(),
-     title: adminContent.title,
-     message: adminContent.message
-     });
+      registeredOn: new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }),
+      year: new Date().getFullYear(),
+      title: adminContent.title,
+      message: adminContent.message,
+    });
     //  const transporter = nodemailer.createTransport({
     // service: "gmail",
     // auth: {
@@ -2193,30 +2326,31 @@ return res.json({status:"error",message:error.message})
       from: `<${process.env.nodemail_username}>`,
       to: adminEmailList,
       subject: adminContent.emailSubject,
-      html: htmlContent1
+      html: htmlContent1,
     });
-     await sendMail({
+    await sendMail({
       from: `<${process.env.nodemail_username}>`,
       to: getUserAddress.email,
       subject: welcomeContent.emailSubject,
-      html: htmlContent
+      html: htmlContent,
     });
-    await dispatchWhatsapp(welcomeContent, getUserAddress.mobileNumber, { name: getUserAddress.name });
+    await dispatchWhatsapp(welcomeContent, getUserAddress.mobileNumber, {
+      name: getUserAddress.name,
+    });
     res.send({ status: "success", message: "Mail sent successfully" });
-
   } catch (error) {
     console.error(error.message);
     res.send({
       status: "error",
-      message: `Mail not sent: ${error.message}`
+      message: `Mail not sent: ${error.message}`,
     });
   }
 };
 
-const safe = v => (v === null || v === undefined ? "" : v);
+const safe = (v) => (v === null || v === undefined ? "" : v);
 //const formatDate = d => (d ? new Date(d).toLocaleDateString("en-IN") : "");
-  // render handlebars template
-  const formatDate = (d) => {
+// render handlebars template
+const formatDate = (d) => {
   if (!d || typeof d !== "string") return "";
 
   const parts = d.split("-");
@@ -2225,24 +2359,15 @@ const safe = v => (v === null || v === undefined ? "" : v);
   let [day, month, year] = parts;
   day = day.padStart(2, "0");
   month = month.padStart(2, "0");
-  if (
-    day < 1 || day > 31 ||
-    month < 1 || month > 12 ||
-    year.length !== 4
-  ) {
+  if (day < 1 || day > 31 || month < 1 || month > 12 || year.length !== 4) {
     return "";
   }
 
   return `${day}-${month}-${year}`;
 };
 
-
 const renderTemplate = (templateName, data) => {
-  const templatePath = path.join(
-    __dirname,
-    "template",
-    `${templateName}.hbs`
-  );
+  const templatePath = path.join(__dirname, "template", `${templateName}.hbs`);
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template not found: ${templatePath}`);
@@ -2253,9 +2378,9 @@ const renderTemplate = (templateName, data) => {
   return compiled(data);
 };
 
-  exports.plan_email = async (req, res) => {
+exports.plan_email = async (req, res) => {
   try {
-    const { userId, subject, planType,title } = req.body;
+    const { userId, subject, planType, title } = req.body;
     const user = await userModel.findOne(
       { userId },
       {
@@ -2269,8 +2394,8 @@ const renderTemplate = (templateName, data) => {
         name: 1,
         mobileNumber: 1,
         userId: 1,
-        _id: 0
-      }
+        _id: 0,
+      },
     );
 
     if (!user) {
@@ -2283,37 +2408,40 @@ const renderTemplate = (templateName, data) => {
         userType: "admin",
         "address.state": state,
         "address.district": district,
-        "address.city": city
+        "address.city": city,
       },
-      { email: 1, _id: 0 }
+      { email: 1, _id: 0 },
     );
 
     const superAdmins = await userModel.find(
       { userType: "superAdmin" },
-      { email: 1, _id: 0 }
+      { email: 1, _id: 0 },
     );
 
     const allMailIds = [
       ...new Set([
-        ...admins.map(a => a.email),
-        ...superAdmins.map(s => s.email)
-      ])
+        ...admins.map((a) => a.email),
+        ...superAdmins.map((s) => s.email),
+      ]),
     ];
-  const userPlan=await  userModel.findOne({userId:userId})
-  const planDetails = userPlan?.details?.plan?.[planType];
-  console.log(`titilr${planType}`)
-  //console.log(`${planDetails.name}dd`)
-    const userContent = await getNotificationContent('plan_activated_user', {
+    const userPlan = await userModel.findOne({ userId: userId });
+    const planDetails = userPlan?.details?.plan?.[planType];
+    console.log(`titilr${planType}`);
+    //console.log(`${planDetails.name}dd`)
+    const userContent = await getNotificationContent("plan_activated_user", {
       emailSubject: subject,
-      title: 'Plan Activated Successfully',
-      message: title=="new"? "Your subscription has been successfully activated. Here are the details:":"Your plan Details",
-      whatsappVariables: ['name', 'planName'],
+      title: "Plan Activated Successfully",
+      message:
+        title == "new"
+          ? "Your subscription has been successfully activated. Here are the details:"
+          : "Your plan Details",
+      whatsappVariables: ["name", "planName"],
     });
-    const adminContent = await getNotificationContent('plan_activated_admin', {
+    const adminContent = await getNotificationContent("plan_activated_admin", {
       emailSubject: subject,
-      title: title=="new"? "New Plan Purchased":"User Plan Details",
-      message: '',
-      whatsappVariables: ['name', 'planName'],
+      title: title == "new" ? "New Plan Purchased" : "User Plan Details",
+      message: "",
+      whatsappVariables: ["name", "planName"],
     });
     const emailData = {
       userId: safe(user.userId),
@@ -2341,7 +2469,9 @@ const renderTemplate = (templateName, data) => {
       basePlanEndDate: formatDate(user.details?.plan?.basePlan?.endDate),
 
       addonsPlanActive: safe(user.details?.plan?.addonsPlan?.isActive),
-      addonsPlanStartDate: formatDate(user.details?.plan?.addonsPlan?.startDate),
+      addonsPlanStartDate: formatDate(
+        user.details?.plan?.addonsPlan?.startDate,
+      ),
       addonsPlanEndDate: formatDate(user.details?.plan?.addonsPlan?.endDate),
 
       jobPlanActive: safe(user.details?.plan?.jobPlan?.isActive),
@@ -2350,7 +2480,7 @@ const renderTemplate = (templateName, data) => {
       jobPlanEndDate: formatDate(user.details?.plan?.jobPlan?.endDate),
 
       // message: safe(message),
-      year: new Date().getFullYear()
+      year: new Date().getFullYear(),
     };
 
     const userHtml = renderTemplate("plan_activated", emailData);
@@ -2363,64 +2493,64 @@ const renderTemplate = (templateName, data) => {
     //     pass: `${process.env.nodemail_password}`,
     //   }
     // });
-    const appImage = await appLogoModel
-  .findOne({})
-  .sort({ createdDate: -1 });
+    const appImage = await appLogoModel.findOne({}).sort({ createdDate: -1 });
 
-const appLogoUrl = appImage?.appLogo || "";
+    const appLogoUrl = appImage?.appLogo || "";
     await sendMail({
       from: `"${emailData.companyName}" <${process.env.nodemail_username}>`,
       to: user.email,
       subject: userContent.emailSubject,
       html: userHtml,
-   logoUrl: appLogoUrl
+      logoUrl: appLogoUrl,
     });
-    await dispatchWhatsapp(userContent, user.mobileNumber, { name: user.name, planName: planDetails?.name ?? "" });
-   const adminEmailList = allMailIds.filter(Boolean).join(",");
+    await dispatchWhatsapp(userContent, user.mobileNumber, {
+      name: user.name,
+      planName: planDetails?.name ?? "",
+    });
+    const adminEmailList = allMailIds.filter(Boolean).join(",");
     if (allMailIds.length) {
       await sendMail({
         from: `"LYD" <${process.env.nodemail_username}>`,
         to: adminEmailList,
         subject: adminContent.emailSubject,
         html: adminHtml,
-        logoUrl: appLogourls[0]
-      //   attachments: [
-      //  {filename: 'logo.png',path:'./assets/tooth.png', cid: 'logo' }
-      // ]
+        logoUrl: appLogourls[0],
+        //   attachments: [
+        //  {filename: 'logo.png',path:'./assets/tooth.png', cid: 'logo' }
+        // ]
       });
-      console.log("admin mails sent")
+      console.log("admin mails sent");
     }
 
     return res.send({
       status: "Success",
-      message: "Plan email sent successfully"
+      message: "Plan email sent successfully",
     });
-
   } catch (error) {
     console.error("Plan Email Error:", error);
     return res.send({
       status: "error",
-      message: "Internal Server Error"
+      message: "Internal Server Error",
     });
   }
 };
 const statusMap = {
   Applied: {
     message: "A new job application has been submitted",
-    color: "#2563eb"
+    color: "#2563eb",
   },
   Shortlisted: {
     message: "Your application has been shortlisted",
-    color: "#16a34a"
+    color: "#16a34a",
   },
   Rejected: {
     message: "Your application has been rejected",
-    color: "#dc2626"
+    color: "#dc2626",
   },
   Selected: {
     message: "Congratulations! You have been selected",
-    color: "#059669"
-  }
+    color: "#059669",
+  },
 };
 
 function getExtraContent(status) {
@@ -2456,18 +2586,18 @@ function getExtraContent(status) {
 
 exports.job_email = async (req, res) => {
   try {
-    const { jobId, userId,title,jobCategory, subject, jobStatus } = req.body;
+    const { jobId, userId, title, jobCategory, subject, jobStatus } = req.body;
 
     const user = await userModel.findOne(
       { userId },
-      { email: 1, name: 1, mobileNumber: 1, address: 1, _id: 0 }
+      { email: 1, name: 1, mobileNumber: 1, address: 1, _id: 0 },
     );
 
     if (!user) return res.json({ status: "error", message: "User not found" });
 
     const job = await jobApplicationModel.findOne({ jobId });
     if (!job) return res.json({ status: "error", message: "Job not found" });
-    
+
     const { state, district, city } = user.address || {};
 
     const admins = await userModel.find(
@@ -2477,79 +2607,90 @@ exports.job_email = async (req, res) => {
         // "address.district": district,
         // "address.city": city
       },
-      { email: 1, _id: 0 }
+      { email: 1, _id: 0 },
     );
     let jobSeekerEmails;
     let jobSeekersList = [];
-     if(title=="new"){
-      console.log(`job cat${jobCategory}`)
-    const appImage= await appLogoModel.find({});
-    const urls = appImage.map(img => img.appLogo);
-    const jobSeekers = await userModel.find({userType: "Job Seekers",isActive: true,
-      "address.state": state,"details.jobCategory": { $in: jobCategory }},{ email: 1, name: 1, mobileNumber: 1, _id: 0 });
-    console.log(`job cat${jobSeekers}`)
+    if (title == "new") {
+      console.log(`job cat${jobCategory}`);
+      const appImage = await appLogoModel.find({});
+      const urls = appImage.map((img) => img.appLogo);
+      const jobSeekers = await userModel.find(
+        {
+          userType: "Job Seekers",
+          isActive: true,
+          "address.state": state,
+          "details.jobCategory": { $in: jobCategory },
+        },
+        { email: 1, name: 1, mobileNumber: 1, _id: 0 },
+      );
+      console.log(`job cat${jobSeekers}`);
 
-    jobSeekerEmails = jobSeekers.map(a => a.email).join(",");
-    jobSeekersList = jobSeekers; }
-    const adminEmails = admins.map(a => a.email).join(",");
+      jobSeekerEmails = jobSeekers.map((a) => a.email).join(",");
+      jobSeekersList = jobSeekers;
+    }
+    const adminEmails = admins.map((a) => a.email).join(",");
 
-     const statusInfo = statusMap[jobStatus] || {
+    const statusInfo = statusMap[jobStatus] || {
       message: "Job status updated",
-      color: "#374151"
+      color: "#374151",
     };
-      console.log(`admin email${adminEmails}`)
-      const appImage= await appLogoModel.find({});
-      const urls = appImage.map(img => img.appLogo);
-      const urlString = JSON.stringify(urls);
-      console.log(urlString);
+    console.log(`admin email${adminEmails}`);
+    const appImage = await appLogoModel.find({});
+    const urls = appImage.map((img) => img.appLogo);
+    const urlString = JSON.stringify(urls);
+    console.log(urlString);
 
-      let statusContent;
-      let newPostContent;
-      if (title=='update') {
-        statusContent = await getNotificationContent(`job_status_${(jobStatus||"").toLowerCase()}`, {
+    let statusContent;
+    let newPostContent;
+    if (title == "update") {
+      statusContent = await getNotificationContent(
+        `job_status_${(jobStatus || "").toLowerCase()}`,
+        {
           emailSubject: subject,
           title: "Application Status Update",
           message: statusInfo.message,
-          whatsappVariables: ['name', 'jobTitle'],
-        });
-      } else if (title=='new') {
-        newPostContent = await getNotificationContent('job_post_new', {
-          emailSubject: subject,
-          title: "New Job Opportunity 🎉",
-          message: `A new job has been posted for the position of ${job.jobTitle} at ${job.orgName}.`,
-          whatsappVariables: ['name', 'jobTitle'],
-        });
-      }
+          whatsappVariables: ["name", "jobTitle"],
+        },
+      );
+    } else if (title == "new") {
+      newPostContent = await getNotificationContent("job_post_new", {
+        emailSubject: subject,
+        title: "New Job Opportunity 🎉",
+        message: `A new job has been posted for the position of ${job.jobTitle} at ${job.orgName}.`,
+        whatsappVariables: ["name", "jobTitle"],
+      });
+    }
 
-      const emailData = {
+    const emailData = {
       userName: user.name,
       jobTitle: job.jobTitle,
       jobId: job.jobId,
       JobLocation: `${job.city},${job.district},${job.state}`,
-      companyLogoUrl:urlString[0],
-      logoUrl:urls[0],
+      companyLogoUrl: urlString[0],
+      logoUrl: urls[0],
       hospitalName: job.orgName,
       jobStatus: jobStatus.toLowerCase(),
-      title: title=='update' ? statusContent.title : newPostContent?.title,
-      statusMessage: title=='update' ? statusContent.message : statusInfo.message,
+      title: title == "update" ? statusContent.title : newPostContent?.title,
+      statusMessage:
+        title == "update" ? statusContent.message : statusInfo.message,
       message: newPostContent?.message,
       statusColor: statusInfo.color,
       appliedDate: new Date(job.createdDate).toLocaleDateString("en-IN"),
       jobUrl: `${process.env.base_url}/lyd/jobs/getJobById?jobId=${jobId}`,
       companyName: "LYD",
       extraContent: getExtraContent(jobStatus),
-      year: new Date().getFullYear()
+      year: new Date().getFullYear(),
     };
     //console.log(`url${process.env.app_logo_url}`)
     let userHtml;
     let adminHtml;
-    if(title=='update'){
-     userHtml = renderTemplate("job_status_alert", emailData);
-    // adminHtml = renderTemplate("job_status_alert", emailData);
-    }
-    else if(title=='new'){
-     userHtml = renderTemplate("job_post_alert", emailData);
-     adminHtml = renderTemplate("job_post_alert", emailData);
+    if (title == "update") {
+      userHtml = renderTemplate("job_status_alert", emailData);
+      // adminHtml = renderTemplate("job_status_alert", emailData);
+    } else if (title == "new") {
+      userHtml = renderTemplate("job_post_alert", emailData);
+      adminHtml = renderTemplate("job_post_alert", emailData);
     }
     // const transporter = nodemailer.createTransport({
     //   service: "gmail",
@@ -2558,168 +2699,169 @@ exports.job_email = async (req, res) => {
     //     pass: process.env.nodemail_password
     //   }
     // });
-    if(title=='update'){
-    await sendMail({
-      from: `"LYD App" <${process.env.nodemail_username}>`,
-      to: user.email,
-      subject: statusContent.emailSubject,
-      html: userHtml,
-      // attachments: [
-      //   { filename: "logo.png", path: "./assets/tooth.png", cid: "logo" }
-      // ]
-    });
-    await dispatchWhatsapp(statusContent, user.mobileNumber, { name: user.name, jobTitle: job.jobTitle });
-  }
+    if (title == "update") {
+      await sendMail({
+        from: `"LYD App" <${process.env.nodemail_username}>`,
+        to: user.email,
+        subject: statusContent.emailSubject,
+        html: userHtml,
+        // attachments: [
+        //   { filename: "logo.png", path: "./assets/tooth.png", cid: "logo" }
+        // ]
+      });
+      await dispatchWhatsapp(statusContent, user.mobileNumber, {
+        name: user.name,
+        jobTitle: job.jobTitle,
+      });
+    }
 
     if (adminEmails && adminHtml) {
       await sendMail({
         from: `"LYD App" <${process.env.nodemail_username}>`,
         to: adminEmails,
-        subject: `Job Alert: ${title=='new' ? newPostContent.emailSubject : statusContent.emailSubject}`,
-        html: adminHtml
+        subject: `Job Alert: ${title == "new" ? newPostContent.emailSubject : statusContent.emailSubject}`,
+        html: adminHtml,
       });
-
     }
-    if (title=='new'&&jobSeekerEmails) {
+    if (title == "new" && jobSeekerEmails) {
       await sendMail({
         from: `"LYD App" <${process.env.nodemail_username}>`,
         to: jobSeekerEmails,
         subject: `New Job Alert: ${newPostContent.emailSubject}`,
-        html: userHtml
+        html: userHtml,
       });
       for (const seeker of jobSeekersList) {
-        await dispatchWhatsapp(newPostContent, seeker.mobileNumber, { name: seeker.name, jobTitle: job.jobTitle });
+        await dispatchWhatsapp(newPostContent, seeker.mobileNumber, {
+          name: seeker.name,
+          jobTitle: job.jobTitle,
+        });
       }
     }
-    return res.send({ status: "Success", message: "Job status email sent successfully" });
+    return res.send({
+      status: "Success",
+      message: "Job status email sent successfully",
+    });
   } catch (error) {
     console.error("Job Email Error:", error);
     return res.send({ status: "error", message: "Internal Server Error" });
   }
 };
-    exports.postImagesAdmin = async (req, res) => {
-      try {
-        const {
-          userId,
-          userType,
-          imageId,
-        // preference,
-          startDate,
-          endDate,
-          isActive
-        } = req.body;
+exports.postImagesAdmin = async (req, res) => {
+  try {
+    const {
+      userId,
+      userType,
+      imageId,
+      // preference,
+      startDate,
+      endDate,
+      isActive,
+    } = req.body;
 
-        if (!userId || !userType) {
-          return res.json({
-            status: "error",
-            message: "Missing userId or userType"
-          });
-        }
+    if (!userId || !userType) {
+      return res.json({
+        status: "error",
+        message: "Missing userId or userType",
+      });
+    }
 
-        const file =
-          req.file || (req.files?.length ? req.files[0] : null);
+    const file = req.file || (req.files?.length ? req.files[0] : null);
 
-        let record = await uploadAdminImages.findOne({ userId, userType });
+    let record = await uploadAdminImages.findOne({ userId, userType });
 
-        if (!record) {
-          record = await uploadAdminImages.create({
-            userId,
-            userType,
-            posterImages: []
-          });
-        }
+    if (!record) {
+      record = await uploadAdminImages.create({
+        userId,
+        userType,
+        posterImages: [],
+      });
+    }
 
-        // CREATE
-        if (!imageId || imageId === "0" || imageId === "") {
-
-          if (!file) {
-            return res.json({
-              status: "error",
-              message: "Image required"
-            });
-          }
-
-          const quota = await getRemainingPosterQuota(userId);
-          if (!quota.planActive || quota.remaining <= 0) {
-            return res.json({
-              status: "error",
-              message: "Your plan has expired. Please purchase a new plan to continue."
-            });
-          }
-
-          const url = await uploadToS3(file);
-
-          const newImage = {
-            path: url,
-          // preference: preference ? Number(preference) : 0,
-            startDate: startDate || "",
-            endDate: endDate || "",
-            isActive:
-              isActive === true ||
-              isActive === "true",
-            uploadedAt: new Date()
-          };
-
-          record.posterImages.push(newImage);
-
-          await record.save();
-
-          return res.json({
-            status: "success",
-            message: "Created",
-            data: record.posterImages.at(-1)
-          });
-        }
-        const image = record.posterImages.id(imageId);
-        if (!image) {
-          return res.json({
-            status: "error",
-            message: "Image not found"
-          });
-        }
-        if (file) {
-          image.path = await uploadToS3(file);
-        }
-
-        // if (preference !== undefined) {
-        //   image.preference = Number(preference);
-        // }
-
-        if (startDate !== undefined) {
-          image.startDate = startDate;
-        }
-
-        if (endDate !== undefined) {
-          image.endDate = endDate;
-        }
-
-        if (isActive !== undefined) {
-          image.isActive =
-            isActive === true ||
-            isActive === "true";
-        }
-
-        image.uploadedAt = new Date();
-
-        await record.save();
-
-        return res.json({
-          status: "success",
-          message: "Updated",
-          data: image
-        });
-
-      } catch (err) {
-        console.error(err);
-
+    // CREATE
+    if (!imageId || imageId === "0" || imageId === "") {
+      if (!file) {
         return res.json({
           status: "error",
-          message: err.message
+          message: "Image required",
         });
       }
-    };
- 
-  
+
+      const quota = await getRemainingPosterQuota(userId);
+      if (!quota.planActive || quota.remaining <= 0) {
+        return res.json({
+          status: "error",
+          message:
+            "Your plan has expired. Please purchase a new plan to continue.",
+        });
+      }
+
+      const url = await uploadToS3(file);
+
+      const newImage = {
+        path: url,
+        // preference: preference ? Number(preference) : 0,
+        startDate: startDate || "",
+        endDate: endDate || "",
+        isActive: isActive === true || isActive === "true",
+        uploadedAt: new Date(),
+      };
+
+      record.posterImages.push(newImage);
+
+      await record.save();
+
+      return res.json({
+        status: "success",
+        message: "Created",
+        data: record.posterImages.at(-1),
+      });
+    }
+    const image = record.posterImages.id(imageId);
+    if (!image) {
+      return res.json({
+        status: "error",
+        message: "Image not found",
+      });
+    }
+    if (file) {
+      image.path = await uploadToS3(file);
+    }
+
+    // if (preference !== undefined) {
+    //   image.preference = Number(preference);
+    // }
+
+    if (startDate !== undefined) {
+      image.startDate = startDate;
+    }
+
+    if (endDate !== undefined) {
+      image.endDate = endDate;
+    }
+
+    if (isActive !== undefined) {
+      image.isActive = isActive === true || isActive === "true";
+    }
+
+    image.uploadedAt = new Date();
+
+    await record.save();
+
+    return res.json({
+      status: "success",
+      message: "Updated",
+      data: image,
+    });
+  } catch (err) {
+    console.error(err);
+
+    return res.json({
+      status: "error",
+      message: err.message,
+    });
+  }
+};
+
 const expirePosterImagesIfNeeded = async () => {
   try {
     const now = new Date();
@@ -2728,39 +2870,37 @@ const expirePosterImagesIfNeeded = async () => {
       {
         "posterImages.endDate": { $ne: null },
         "posterImages.endDate": { $lt: now },
-        "posterImages.isActive": true
+        "posterImages.isActive": true,
       },
       {
         $set: {
-          "posterImages.$[img].isActive": false
-        }
+          "posterImages.$[img].isActive": false,
+        },
       },
       {
         arrayFilters: [
           {
             "img.endDate": { $ne: null, $lt: now },
-            "img.isActive": true
-          }
-        ]
-      }
+            "img.isActive": true,
+          },
+        ],
+      },
     );
   } catch (error) {
     console.error("Poster image expiry check failed:", error);
   }
 };
 exports.getUploadImages = async (req, res) => {
-
   const { userType, userId } = req.body;
 
   try {
-
     const today = new Date();
 
     const matchStage = {
       userType: {
         $regex: `^${userType}$`,
-        $options: "i"
-      }
+        $options: "i",
+      },
     };
 
     if (userId) {
@@ -2771,24 +2911,15 @@ exports.getUploadImages = async (req, res) => {
 
     const images = [];
 
-    records.forEach(record => {
-
-      record.posterImages.forEach(img => {
-
+    records.forEach((record) => {
+      record.posterImages.forEach((img) => {
         let isExpired = false;
 
         // CHECK EXPIRY ONLY
-        if (
-          img.endDate &&
-          img.endDate !== "" &&
-          img.endDate !== "null"
-        ) {
+        if (img.endDate && img.endDate !== "" && img.endDate !== "null") {
+          const [day, month, year] = img.endDate.split("-").map(Number);
 
-          const [day, month, year] =
-              img.endDate.split("-").map(Number);
-
-          const endDate =
-              new Date(year, month - 1, day);
+          const endDate = new Date(year, month - 1, day);
 
           if (endDate < today) {
             isExpired = true;
@@ -2800,7 +2931,6 @@ exports.getUploadImages = async (req, res) => {
 
         // RETURN ALL NON-EXPIRED IMAGES
         images.push({
-
           _id: img._id,
 
           path: img.path,
@@ -2814,32 +2944,26 @@ exports.getUploadImages = async (req, res) => {
           userType: record.userType,
 
           // IMPORTANT
-          isActive: img.isActive ?? true
+          isActive: img.isActive ?? true,
         });
       });
     });
 
     return res.send({
-
       status: "success",
 
       message:
-          images.length > 0
-              ? "Images fetched successfully"
-              : "No images found",
+        images.length > 0 ? "Images fetched successfully" : "No images found",
 
-      data: images
+      data: images,
     });
-
   } catch (error) {
-
     console.error(error);
 
     return res.send({
-
       status: "error",
 
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -3068,7 +3192,7 @@ exports.getUploadImages = async (req, res) => {
 // };
 
 //exports.getUploadImages = async (req, res) => {
-//   const { userType, userId } = req.body; 
+//   const { userType, userId } = req.body;
 
 //   try {
 //     const matchStage = {
@@ -3122,7 +3246,7 @@ exports.getUploadImages = async (req, res) => {
 //   }
 // };
 
- exports.deleteAdminImage = async (req, res) => {
+exports.deleteAdminImage = async (req, res) => {
   const { userId, index } = req.body;
 
   const uploadRecord = await uploadAdminImages.findOne({ userId });
@@ -3151,21 +3275,20 @@ exports.getUploadImages = async (req, res) => {
   });
 };
 
-
- exports.saveFcmToken = async (req, res) => {
+exports.saveFcmToken = async (req, res) => {
   const { userId, fcmToken, userType } = req.body;
 
   try {
     if (!userId || !fcmToken) {
       return res.send({
         status: "error",
-        message: "missing fields"
+        message: "missing fields",
       });
     }
 
     const setFields = {
       fcmToken: fcmToken,
-      updatedDate: new Date()
+      updatedDate: new Date(),
     };
     if (userType) setFields.userType = userType;
 
@@ -3174,19 +3297,18 @@ exports.getUploadImages = async (req, res) => {
       { $set: setFields },
       {
         new: true,
-        upsert: true
-      }
+        upsert: true,
+      },
     );
 
     return res.send({
       status: "success",
-      data: savedToken
+      data: savedToken,
     });
-
   } catch (error) {
     return res.send({
       status: "error",
-      message: `token not saved ${error.message}`
+      message: `token not saved ${error.message}`,
     });
   }
 };

@@ -141,10 +141,18 @@ const { getNotificationContent, dispatchWhatsapp } = require('./notification_con
 // }
 // }
 if (!firebaseAdmin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
-  firebaseAdmin.initializeApp({
-    credential: firebaseAdmin.credential.cert(serviceAccount),
-  });
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
+    firebaseAdmin.initializeApp({
+      credential: firebaseAdmin.credential.cert(serviceAccount),
+    });
+    console.log("[FCM] Firebase Admin initialized successfully.");
+  } catch (err) {
+    console.error(
+      "[FCM] Firebase Admin init failed — FIREBASE_KEY env var is missing or invalid JSON. Push notifications are disabled until this is fixed:",
+      err.message
+    );
+  }
 }
 // exports.createNotification = async (req, res) => {
 //   try {
@@ -1322,6 +1330,13 @@ const createAndSendNotification = async (
     message,
     notificationImage
   ) => {
+    if (!firebaseAdmin.apps.length) {
+      console.error(
+        `[FCM] Skipped push for user ${targetUserId} — Firebase Admin is not initialized (check FIREBASE_KEY).`
+      );
+      return { sent: 0, failed: 0, error: "Firebase Admin not initialized (check FIREBASE_KEY)" };
+    }
+
     const tokens = await fcmModel.find(
       { userId: targetUserId },
       { fcmToken: 1, _id: 0 }
@@ -1329,8 +1344,12 @@ const createAndSendNotification = async (
 
     if (!tokens.length) {
       console.log(`[FCM] No tokens found in DB for user: ${targetUserId}`);
-      return;
+      return { sent: 0, failed: 0, error: "No FCM token registered" };
     }
+
+    let sent = 0;
+    let failed = 0;
+    let lastError = null;
 
     for (const t of tokens) {
      const payload = {
@@ -1380,8 +1399,11 @@ const createAndSendNotification = async (
       try {
         await firebaseAdmin.messaging().send(payload);
         console.log(`[FCM] Notification successfully sent to token owner of user: ${targetUserId}`);
+        sent++;
       } catch (err) {
-        console.error(`[FCM ERROR] Failed for user ${targetUserId}:`, err.message);
+        console.error(`[FCM ERROR] Failed for user ${targetUserId}:`, err.code || err.message);
+        failed++;
+        lastError = err.code || err.message;
 
         // Remove token if expired/invalid
         if (err.code === "messaging/registration-token-not-registered") {
@@ -1390,10 +1412,12 @@ const createAndSendNotification = async (
         }
       }
     }
+
+    return { sent, failed, error: lastError };
   };
 
   // Execute Firebase Dispatch
-  await sendPushNotification(
+  return await sendPushNotification(
     receiverUserId,
     title,
     message,
@@ -1445,8 +1469,11 @@ const createAndSendNotification = async (
         });
       }
 
+      let pushSent = 0;
+      let pushFailed = 0;
+      let lastPushError = null;
       for (const user of users) {
-        await createAndSendNotification(
+        const result = await createAndSendNotification(
           user.userId,
           user.userType,
           notificationImage,
@@ -1457,11 +1484,19 @@ const createAndSendNotification = async (
           city,
           area
         );
+        pushSent += result?.sent || 0;
+        pushFailed += result?.failed || 0;
+        if (result?.error) lastPushError = result.error;
       }
 
       return res.send({
         status: "success",
-        message: `Notification sent to ${users.length} users`
+        message: `Notification sent to ${users.length} users`,
+        pushSent,
+        pushFailed,
+        ...(pushSent === 0 && pushFailed > 0
+          ? { pushWarning: `All push deliveries failed: ${lastPushError}` }
+          : {}),
       });
     }
     const receiverMap = new Map();
@@ -1510,8 +1545,11 @@ const createAndSendNotification = async (
       whatsappVariables: ['name', 'title', 'message'],
     });
 
+    let pushSent = 0;
+    let pushFailed = 0;
+    let lastPushError = null;
     for (const receiver of receivers) {
-      await createAndSendNotification(
+      const result = await createAndSendNotification(
         receiver.userId,
         receiver.userType,
         notificationImage,
@@ -1522,6 +1560,9 @@ const createAndSendNotification = async (
         city,
         area
       );
+      pushSent += result?.sent || 0;
+      pushFailed += result?.failed || 0;
+      if (result?.error) lastPushError = result.error;
 
       await dispatchWhatsapp(broadcastContent, receiver.mobileNumber, {
         name: receiver.name ?? "",
@@ -1532,6 +1573,11 @@ const createAndSendNotification = async (
      return res.send({
       status: "success",
       message: `Notification sent to ${receivers.length} users`,
+      pushSent,
+      pushFailed,
+      ...(pushSent === 0 && pushFailed > 0
+        ? { pushWarning: `All push deliveries failed: ${lastPushError}` }
+        : {}),
     });
   } catch (error) {
     console.error("NOTIFICATION SYSTEM CRITICAL ERROR:", error);
