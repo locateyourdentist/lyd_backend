@@ -42,9 +42,24 @@ if (!resend) {
   );
 }
 
+// Resend only sends from domains verified in the Resend dashboard, so a
+// gmail.com address (nodemail_username) is always rejected. MAIL_FROM must be
+// an address on a verified domain, e.g. no-reply@locateyourdentist.com.
+const buildSender = (from) => {
+  const sender = process.env.MAIL_FROM;
+  if (!sender) return from;
+  const displayName = String(from || "").match(/^\s*"?([^"<]*?)"?\s*</)?.[1];
+  return displayName ? `"${displayName}" <${sender}>` : `"LYD" <${sender}>`;
+};
+
 const sendMail = async ({ from, to, subject, html }) => {
   if (!resend)
     throw new Error("Email sending is not configured (missing RESEND_API_KEY)");
+  if (!process.env.MAIL_FROM)
+    console.error(
+      "[Mail] MAIL_FROM is not set — falling back to the caller's sender, which Resend rejects if it is not on a verified domain.",
+    );
+  from = buildSender(from);
   const toList = Array.isArray(to)
     ? to
     : String(to)
@@ -189,6 +204,7 @@ const sendRegistrationOtp = async (userId) => {
     });
     return { status: "success", message: "OTP sent to email" };
   } catch (err) {
+    console.error(`[Mail] Registration OTP failed for ${userId}:`, err.message);
     return { status: "error", message: err.message };
   }
 };
