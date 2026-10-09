@@ -169,7 +169,6 @@ const sendRegistrationOtp = async (userId) => {
     );
     const source = fs.readFileSync(templatePath, "utf8");
     const template = handlebars.compile(source);
-    //console.log(`https://lyd-backend-mjvx.onrender.com/lyd/user/verify_password`)
 
     const content = await getNotificationContent("otp_registration", {
       emailSubject: "LYD OTP Verification Mail",
@@ -186,8 +185,7 @@ const sendRegistrationOtp = async (userId) => {
       isRegister: true,
       title: content.title,
       message: content.message,
-      verification_url: `https://lyd-backend-mjvx.onrender.com/lyd/user/verify_password`,
-      //`${process.env.base_url}/lyd/user/verify_password`
+      verification_url: `${process.env.base_url}/lyd/user/verify_email?email=${encodeURIComponent(user.email)}&otp=${generateOtp}`,
     });
     console.log(`sslog${user.email}`);
     // Send mail
@@ -1594,45 +1592,72 @@ const assignFreePlanToUser = async (newUserId, userType) => {
 //     return res.status(500).send({ status: "error", message: err.message });
 //   }
 // }
+const confirmRegistrationOtp = async (email, otp) => {
+  if (!email || !otp)
+    return { status: "error", message: "Email and OTP are required" };
+
+  const user = await userModel.findOne({ email, isActive: true });
+  if (!user) return { status: "error", message: "User not found" };
+
+  if (user.isEmailVerified)
+    return { status: "success", message: "Email is already verified" };
+
+  // Check OTP
+  if (user.details?.emailOtp !== Number(otp))
+    return { status: "error", message: "Invalid OTP" };
+
+  // Check expiry
+  if (user.details.emailOtpExpiry < Date.now())
+    return { status: "error", message: "OTP has expired" };
+
+  // OTP verified successfully
+  await userModel.findOneAndUpdate(
+    { userId: user.userId },
+    {
+      $set: {
+        isEmailVerified: true,
+        "details.emailOtp": null,
+        "details.emailOtpExpiry": null,
+      },
+    },
+  );
+
+  return { status: "success", message: "Email verified successfully" };
+};
+
 exports.verifyRegistrationOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    if (!email || !otp)
-      return res.send({
-        status: "error",
-        message: "Email and OTP are required",
-      });
-
-    const user = await userModel.findOne({ email, isActive: true });
-    if (!user) return res.send({ status: "error", message: "User not found" });
-
-    // Check OTP
-    if (user.details.emailOtp !== Number(otp))
-      return res.send({ status: "error", message: "Invalid OTP" });
-
-    // Check expiry
-    if (user.details.emailOtpExpiry < Date.now())
-      return res.send({ status: "error", message: "OTP has expired" });
-
-    // OTP verified successfully
-    await userModel.findOneAndUpdate(
-      { userId: user.userId },
-      {
-        $set: {
-          isEmailVerified: true,
-          "details.emailOtp": null,
-          "details.emailOtpExpiry": null,
-        },
-      },
-    );
-
-    return res.send({
-      status: "success",
-      message: "Email verified successfully",
-    });
+    return res.send(await confirmRegistrationOtp(email, otp));
   } catch (err) {
     return res.status(500).send({ status: "error", message: err.message });
   }
+};
+
+// Opened from the "Verify Email" button in verify_register_email.hbs,
+// so it renders an HTML page instead of returning JSON.
+exports.verifyRegistrationEmailLink = async (req, res) => {
+  let result;
+  try {
+    const { email, otp } = req.query;
+    result = await confirmRegistrationOtp(email, otp);
+  } catch (err) {
+    console.error("[Mail] Email verification link failed:", err.message);
+    result = { status: "error", message: "Something went wrong. Please try again." };
+  }
+  const success = result.status === "success";
+  const templatePath = path.join(__dirname, "template", "verify_email_result.hbs");
+  const template = handlebars.compile(fs.readFileSync(templatePath, "utf8"));
+  res.status(success ? 200 : 400).send(
+    template({
+      success,
+      title: success ? "Email Verified" : "Verification Failed",
+      message: success
+        ? `${result.message}. You can now go back to the LYD app and log in.`
+        : `${result.message}. Please open the LYD app and enter the OTP from the email, or request a new one.`,
+      year: new Date().getFullYear(),
+    }),
+  );
 };
 exports.resendRegistrationOtp = async (req, res) => {
   try {

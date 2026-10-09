@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{title}} - LYD</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0 16px;
+      background-color: #f4f6f8;
+      font-family: 'Helvetica', Arial, sans-serif;
+    }
+    .container {
+      max-width: 480px;
+      margin: 60px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background-color: #004958;
+      color: #ffffff;
+      text-align: center;
+      padding: 30px 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .body {
+      padding: 30px 20px;
+      text-align: center;
+      color: #555555;
+    }
+    .icon {
+      width: 64px;
+      height: 64px;
+      line-height: 64px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      font-size: 32px;
+      font-weight: bold;
+      color: #ffffff;
+    }
+    .icon.success { background-color: #2e7d32; }
+    .icon.error { background-color: #c62828; }
+    .body p {
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 0;
+    }
+    .footer {
+      font-size: 12px;
+      color: #aaa;
+      text-align: center;
+      padding: 20px;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>{{title}}</h1>
+    </div>
+    <div class="body">
+      {{#if success}}
+      <div class="icon success">&#10003;</div>
+      {{else}}
+      <div class="icon error">!</div>
+      {{/if}}
+      <p>{{message}}</p>
+    </div>
+    <div class="footer">
+      &copy; {{year}} LYD. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>

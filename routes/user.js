@@ -18,6 +18,7 @@ router.post('/login_user',userController.loginUser)
 router.post('/switch_user',userController.switchUser)
 
 router.post('/verifyRegistrationOtp',userController.verifyRegistrationOtp)
+router.get('/verify_email',userController.verifyRegistrationEmailLink)
 router.post('/resendRegistrationOtp',userController.resendRegistrationOtp)
 router.post('/change_appLogo',auth,upload.single('appLogo'),userController.changeAppLogo)
 router.get('/get_appLogo',userController.getAppLogo)
