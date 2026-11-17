@@ -1595,8 +1595,9 @@ const assignFreePlanToUser = async (newUserId, userType) => {
 const confirmRegistrationOtp = async (email, otp) => {
   if (!email || !otp)
     return { status: "error", message: "Email and OTP are required" };
-
-  const user = await userModel.findOne({ email, isActive: true });
+  const user = await userModel.findOne({ email: new RegExp(`^${email.trim()}$`, "i"), isActive: true },
+      { sort: { createdDate: 1 } },
+);
   if (!user) return { status: "error", message: "User not found" };
 
   if (user.isEmailVerified)
@@ -2718,7 +2719,7 @@ exports.job_email = async (req, res) => {
       message: newPostContent?.message,
       statusColor: statusInfo.color,
       appliedDate: new Date(job.createdDate).toLocaleDateString("en-IN"),
-      jobUrl: `${process.env.base_url}/lyd/jobs/getJobById?jobId=${jobId}`,
+      jobUrl: `${process.env.base_url}/job/${job.jobId}`,
       companyName: "LYD",
       extraContent: getExtraContent(jobStatus),
       year: new Date().getFullYear(),

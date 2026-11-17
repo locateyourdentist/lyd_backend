@@ -140,13 +140,45 @@ const { getNotificationContent, dispatchWhatsapp } = require('./notification_con
 // return res.send({status:"error",message:`notification not created error ${error.message}`})
 // }
 // }
+// FIREBASE_KEY holds the service-account JSON on one line. Hosting dashboards
+// often turn the private key's "\n" escapes into real line breaks (invalid
+// JSON) or double-escape them ("\\n"), which makes Google reject the key with
+// app/invalid-credential, so normalise both before using it.
+const parseFirebaseKey = (raw) => {
+  if (!raw) throw new Error("FIREBASE_KEY env var is not set");
+  let key;
+  try {
+    key = JSON.parse(raw);
+  } catch {
+    key = JSON.parse(raw.replace(/\r?\n/g, "\\n"));
+  }
+  if (typeof key.private_key === "string") {
+    key.private_key = key.private_key.replace(/\\n/g, "\n");
+  }
+  return key;
+};
+
 if (!firebaseAdmin.apps.length) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
+    const serviceAccount = parseFirebaseKey(process.env.FIREBASE_KEY);
     firebaseAdmin.initializeApp({
       credential: firebaseAdmin.credential.cert(serviceAccount),
     });
-    console.log("[FCM] Firebase Admin initialized successfully.");
+    console.log(
+      `[FCM] Firebase Admin initialized for project "${serviceAccount.project_id}".`
+    );
+    // Fetch an access token now so a revoked key or wrong project shows up in
+    // the startup logs instead of only as app/invalid-credential on each send.
+    firebaseAdmin
+      .app()
+      .options.credential.getAccessToken()
+      .then(() => console.log("[FCM] Service-account credentials verified."))
+      .catch((err) =>
+        console.error(
+          `[FCM] Service-account credentials rejected by Google for project "${serviceAccount.project_id}" — generate a new private key in Firebase Console > Project settings > Service accounts and update FIREBASE_KEY:`,
+          err.message
+        )
+      );
   } catch (err) {
     console.error(
       "[FCM] Firebase Admin init failed — FIREBASE_KEY env var is missing or invalid JSON. Push notifications are disabled until this is fixed:",

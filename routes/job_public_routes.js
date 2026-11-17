@@ -19,7 +19,8 @@ function extractPlainText(delta) {
 router.get('/job/:jobId', async (req, res) => {
   try {
     const job = await jobModel.findOne({ jobId: Number(req.params.jobId) });
-    const url = `${process.env.web_url}/job/${req.params.jobId}`;
+    const webUrl = process.env.web_url || process.env.base_url;
+    const url = `${webUrl}/job/${req.params.jobId}`;
 
     if (!job) {
       return res.status(404).send(`<!DOCTYPE html><html><head><title>Not found</title></head>
@@ -39,7 +40,7 @@ router.get('/job/:jobId', async (req, res) => {
       message: `${location} | Salary: ${job.salary || 'N/A'}${description ? ' — ' + description : ''}`,
       image: job.jobImage,
       url,
-      webUrl: process.env.web_url,
+      webUrl,
     });
 
     res.send(html);
