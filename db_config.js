@@ -1,6 +1,12 @@
 const mongoose=require('mongoose');
 require('dotenv').config()
 
+// Optional: override DNS servers (e.g. DNS_SERVERS=8.8.8.8,1.1.1.1) when the
+// local resolver refuses the SRV lookups that mongodb+srv:// URLs need.
+if (process.env.DNS_SERVERS) {
+  require('dns').setServers(process.env.DNS_SERVERS.split(',').map(s => s.trim()));
+}
+
 const connectDB=async()=>{
     try{
     const dbName = process.env.APP_NAME || 'Locate_your_dentist';
