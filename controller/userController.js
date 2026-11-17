@@ -1929,7 +1929,7 @@ exports.forgotPassword = async (req, res) => {
           "No record was found for the provided user information. Please register to create a new account.",
       });
     else {
-      generateOtp = Math.floor(1000 + Math.random() * 9000);
+      const generateOtp = Math.floor(1000 + Math.random() * 9000);
       console.log(`otp${generateOtp}`);
       // user.details.resetOtp = generateOtp;
       const otpExpiry = Date.now() + 10 * 60 * 1000;
