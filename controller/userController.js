@@ -1595,17 +1595,27 @@ const assignFreePlanToUser = async (newUserId, userType) => {
 const confirmRegistrationOtp = async (email, otp) => {
   if (!email || !otp)
     return { status: "error", message: "Email and OTP are required" };
-  const user = await userModel.findOne({ email: new RegExp(`^${email.trim()}$`, "i"), isActive: true },
-      { sort: { createdDate: 1 } },
-);
-  if (!user) return { status: "error", message: "User not found" };
+  // Escape regex special chars so emails like "a+b@x.com" match literally.
+  const escapedEmail = email.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const users = await userModel
+    .find({ email: new RegExp(`^${escapedEmail}$`, "i"), isActive: true })
+    .sort({ createdDate: -1 });
+  if (!users.length) return { status: "error", message: "User not found" };
+
+  // The same email can have several accounts; pick the one this OTP was issued to.
+  const otpStr = String(otp).trim();
+  const user = users.find(
+    (u) => u.details?.emailOtp != null && String(u.details.emailOtp) === otpStr,
+  );
+
+  if (!user) {
+    if (users.some((u) => u.isEmailVerified))
+      return { status: "success", message: "Email is already verified" };
+    return { status: "error", message: "Invalid OTP" };
+  }
 
   if (user.isEmailVerified)
     return { status: "success", message: "Email is already verified" };
-
-  // Check OTP
-  if (user.details?.emailOtp !== Number(otp))
-    return { status: "error", message: "Invalid OTP" };
 
   // Check expiry
   if (user.details.emailOtpExpiry < Date.now())
@@ -1635,8 +1645,6 @@ exports.verifyRegistrationOtp = async (req, res) => {
   }
 };
 
-// Opened from the "Verify Email" button in verify_register_email.hbs,
-// so it renders an HTML page instead of returning JSON.
 exports.verifyRegistrationEmailLink = async (req, res) => {
   let result;
   try {
@@ -1896,20 +1904,30 @@ exports.changePassword = async (req, res) => {
     res.status({ status: "error", message: err.message });
   }
 };
+// Same lookup login uses: active accounts with this email, case-insensitive.
+// One email can have several accounts, so forgot-password reads/writes all of them.
+const activeEmailFilter = (mail) => ({
+  email: new RegExp(
+    `^${String(mail).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+    "i",
+  ),
+  isActive: true,
+});
+
 exports.forgotChangePassword = async (req, res) => {
   try {
     const { mail, newPassword } = req.body;
-    const user = await userModel.findOne({ email: mail, isActive: true });
+    if (!mail || !newPassword)
+      return res.json({ status: "error", message: "Email and new password are required" });
+    const user = await userModel.findOne(activeEmailFilter(mail));
     if (!user)
       return res.json({ status: "error", message: "User does not exist" });
     //  const isPasswordValid = await bcryptjs.compare(oldPassword, user.password);
     // if (!isPasswordValid) return res.json({ status: "error", message: 'old password is wrong' });
     const hashedPassword = await bcryptjs.hash(newPassword, 10);
-    const addPassword = await userModel.findOneAndUpdate(
-      { email: mail },
-      { $set: { password: hashedPassword } },
-    );
-    const email = addPassword.email;
+    await userModel.updateMany(activeEmailFilter(mail), {
+      $set: { password: hashedPassword },
+    });
     //const loginModel= userLoginModel.find({email:email},{$set:{password:hashedPassword}});
     //const users= userModel.find({email:email},{$set:{password:hashedPassword}});
     res.send({ status: "success", message: "password Changed successfully" });
@@ -1921,7 +1939,9 @@ exports.forgotChangePassword = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { mail } = req.body;
-    const user = await userModel.findOne({ email: mail, isActive: true });
+    if (!mail)
+      return res.json({ status: "error", message: "Email is required" });
+    const user = await userModel.findOne(activeEmailFilter(mail));
     if (!user)
       return res.json({
         status: "error",
@@ -1930,18 +1950,16 @@ exports.forgotPassword = async (req, res) => {
       });
     else {
       const generateOtp = Math.floor(1000 + Math.random() * 9000);
-      console.log(`otp${generateOtp}`);
       // user.details.resetOtp = generateOtp;
       const otpExpiry = Date.now() + 10 * 60 * 1000;
-      await userModel.findOneAndUpdate(
-        { userId: user.userId },
-        {
-          $set: {
-            "details.resetOtp": generateOtp,
-            "details.otpExpiry": otpExpiry,
-          },
+      // Store on every active account with this email so verification works
+      // no matter which of them a later lookup returns.
+      await userModel.updateMany(activeEmailFilter(mail), {
+        $set: {
+          "details.resetOtp": generateOtp,
+          "details.otpExpiry": otpExpiry,
         },
-      );
+      });
       // const transporter = nodemailer.createTransport({
       // service: "gmail",
       // auth: {
@@ -2007,17 +2025,21 @@ exports.verifyOtp = async (req, res) => {
       });
     }
 
-    const user = await userModel.findOne({ email: mail });
+    const users = await userModel.find(activeEmailFilter(mail));
 
-    if (!user) {
+    if (!users.length) {
       return res.send({
         status: "error",
         message: "User not found",
       });
     }
 
-    // Check OTP match
-    if (user.details.resetOtp !== Number(otp)) {
+    // Check OTP match (compare as strings: old records stored it as a string)
+    const otpStr = String(otp).trim();
+    const user = users.find(
+      (u) => u.details?.resetOtp != null && String(u.details.resetOtp) === otpStr,
+    );
+    if (!user) {
       return res.send({
         status: "error",
         message: "Invalid OTP",
@@ -2025,32 +2047,19 @@ exports.verifyOtp = async (req, res) => {
     }
 
     // Check OTP expiry
-    if (user.details.otpExpiry < Date.now()) {
+    if (!user.details.otpExpiry || user.details.otpExpiry < Date.now()) {
       return res.send({
         status: "error",
         message: "OTP has expired",
       });
     }
 
-    // OTP verified successfully
-    user.details.resetOtp = otp;
-    console.log(user.details.otpExpiry);
-    await userModel.findOneAndUpdate(
-      { userId: user.userId },
-      {
-        $set: {
-          "details.resetOtp": otp,
-          "details.otpExpiry": user.details.otpExpiry,
-        },
-      },
-    );
-
     res.json({
       status: "success",
       message: "OTP verified successfully",
     });
   } catch (error) {
-    res.status({
+    res.status(500).send({
       status: "error",
       message: error.message,
     });
