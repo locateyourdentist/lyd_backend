@@ -2281,13 +2281,11 @@ exports.create_email = async (req, res) => {
     if (!getUserAddress) {
       return res.send({ status: "error", message: "user not found" });
     }
-    const { state, district, city } = getUserAddress.address;
+    const { state } = getUserAddress.address;
     const getAllAdmins = await userModel.find(
       {
         userType: "admin",
         "address.state": state,
-        "address.district": district,
-        "address.city": city,
       },
       { email: 1, _id: 0 },
     );
@@ -2373,12 +2371,21 @@ exports.create_email = async (req, res) => {
     // });
     const adminEmailList = allMailIds.filter(Boolean).join(",");
 
-    await sendMail({
-      from: `<${process.env.nodemail_username}>`,
-      to: adminEmailList,
-      subject: adminContent.emailSubject,
-      html: htmlContent1,
-    });
+    if (adminEmailList) {
+      await sendMail({
+        from: `<${process.env.nodemail_username}>`,
+        to: adminEmailList,
+        subject: adminContent.emailSubject,
+        html: htmlContent1,
+      }).catch((err) =>
+        console.error("Admin/superAdmin notification mail failed:", err.message),
+      );
+    } else {
+      console.error(
+        `No admin/superAdmin found for state "${state}" to notify about user ${userId}`,
+      );
+    }
+
     await sendMail({
       from: `<${process.env.nodemail_username}>`,
       to: getUserAddress.email,
