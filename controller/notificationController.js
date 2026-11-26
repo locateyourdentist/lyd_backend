@@ -1366,7 +1366,7 @@ const createAndSendNotification = async (
       console.error(
         `[FCM] Skipped push for user ${targetUserId} — Firebase Admin is not initialized (check FIREBASE_KEY).`
       );
-      return { sent: 0, failed: 0, error: "Firebase Admin not initialized (check FIREBASE_KEY)" };
+      return { sent: 0, failed: 1, error: "Firebase Admin not initialized (check FIREBASE_KEY)" };
     }
 
     const tokens = await fcmModel.find(
