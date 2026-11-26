@@ -840,15 +840,14 @@ exports.userRegister = async (req, res) => {
         message: "User registered successfully",
         data: newUser,
       });
-      axios
-        .post(`${process.env.base_url}/lyd/user/create_email`, {
-          userId: newUserId,
-          subject: "New Registration",
-          title: "new",
-          message: "new user added successfully",
-        })
+      sendRegistrationEmails({
+        userId: newUserId,
+        subject: "New Registration",
+        title: "new",
+        message: "new user added successfully",
+      })
         .then((response) => {
-          console.log("Mail response:", response.data);
+          console.log("Mail response:", response);
         })
         .catch((mailError) => {
           console.log("Mail send failed:", mailError.message);
@@ -2260,10 +2259,7 @@ exports.welcome_email = async (req, res) => {
   }
 };
 
-exports.create_email = async (req, res) => {
-  try {
-    const { userId, subject, message, title } = req.body;
-
+const sendRegistrationEmails = async ({ userId, subject, message, title }) => {
     const getUserAddress = await userModel.findOne(
       { userId },
       {
@@ -2279,7 +2275,7 @@ exports.create_email = async (req, res) => {
     );
 
     if (!getUserAddress) {
-      return res.send({ status: "error", message: "user not found" });
+      return { status: "error", message: "user not found" };
     }
     const { state } = getUserAddress.address;
     const getAllAdmins = await userModel.find(
@@ -2395,7 +2391,13 @@ exports.create_email = async (req, res) => {
     await dispatchWhatsapp(welcomeContent, getUserAddress.mobileNumber, {
       name: getUserAddress.name,
     });
-    res.send({ status: "success", message: "Mail sent successfully" });
+    return { status: "success", message: "Mail sent successfully" };
+};
+
+exports.create_email = async (req, res) => {
+  try {
+    const result = await sendRegistrationEmails(req.body);
+    res.send(result);
   } catch (error) {
     console.error(error.message);
     res.send({
